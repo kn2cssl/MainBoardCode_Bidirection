@@ -46,6 +46,16 @@ struct Robot_Data
 	signed int M2b;
 	signed int M3a;
 	signed int M3b;
+	
+	signed int LinearSpeed_x0;
+	signed int LinearSpeed_x1;
+	signed int LinearSpeed_y0;
+	signed int LinearSpeed_y1;
+	signed int RotationSpeed0;
+	signed int RotationSpeed1;
+	signed int Cam_dir0;
+	signed int Cam_dir1;
+	
 	uint8_t KCK;
 	uint8_t CHP;
 	uint8_t ASK;

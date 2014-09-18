@@ -31,6 +31,8 @@ void disp_ans(void);
 #define SLAVE2_ADDRESS    1
 #define SLAVE3_ADDRESS    2
 #define SLAVE4_ADDRESS    3
+#define ROBOTRADIUS 0.090
+#define SpeedToRPM 1375.14
 
 /* Global variables */
 int flg_reply=0;
@@ -45,6 +47,18 @@ int Test_Driver_Data0 , Test_Driver_Data1 , Test_Driver_Data2 , Test_Driver_Data
 char Test_RPM = true;
 char rx[15];
 char buff[2];
+
+//////////  motor speed variable
+struct Robot 
+{
+	int dir;
+	int L_spead_x;//linear sped x
+	int L_spead_y;//linear sped y
+	int R_spead;  //rotational speed
+}This_Robot;
+
+
+
 
 int flg_off;
 char str[40];
@@ -161,30 +175,51 @@ int main (void)
             disp_ans();
 
             ctrlflg = 0;
-			//if (Test_RPM == true)
-			//{
-				//Robot_D[RobotID].M0a = 0xff;
-				//Robot_D[RobotID].M0b = 0x05;
-				//Robot_D[RobotID].M1a = 0xff;
-				//Robot_D[RobotID].M1b = 0x05;
-				//Robot_D[RobotID].M2a = 0xff;
-				//Robot_D[RobotID].M2b = 0x05;
-				//Robot_D[RobotID].M3a = 0xff;
-				//Robot_D[RobotID].M3b = 0x05;
-				//
-			//}
+		
+			//LinearSpeed.x,LinearSpeed.y,ci.cur_pos.dir,RotationSpeed
+			
+			This_Robot.dir		 = (Robot_D[RobotID].Cam_dir0 & 0x0ff) | ((Robot_D[RobotID].Cam_dir1 <<8) & 0xff00); /// in zavie bayad ba gyro daghigh beshe
+			This_Robot.L_spead_x = (Robot_D[RobotID].LinearSpeed_x0 & 0x0ff) | ((Robot_D[RobotID].LinearSpeed_x1 <<8) & 0xff00)/100;
+			This_Robot.L_spead_y = (Robot_D[RobotID].LinearSpeed_y0 & 0x0ff) | ((Robot_D[RobotID].LinearSpeed_y1 <<8) & 0xff00)/100;
+			This_Robot.R_spead	 = (Robot_D[RobotID].RotationSpeed0 & 0x0ff) | ((Robot_D[RobotID].RotationSpeed1 <<8) & 0xff00)/100;
 
+			double rotate[4][3],speed[3][1];
+			int motor[4][1];
+
+			speed[0][0] = -(This_Robot.L_spead_x * cos(This_Robot.dir) + This_Robot.L_spead_y * sin(This_Robot.dir));
+			speed[1][0] = -(-This_Robot.L_spead_x * sin(This_Robot.dir) + This_Robot.L_spead_y * cos(This_Robot.dir));
+			speed[2][0] = -(This_Robot.R_spead);
+
+			rotate[0][0] =  cos( 0.18716 * M_PI);//cos(M_PI /4.0);//-sin(rangle + M_PI);//7/4
+			rotate[1][0] =  sin( M_PI / 4.0 );//-cos(0.22 * M_PI);//-sin(rangle - M_PI / 3);//0.218
+			rotate[2][0] =  -cos( M_PI / 4.0 );//-sin(0.22 * M_PI);//-sin(rangle + M_PI / 3);//0.78
+			rotate[3][0] =  -cos( 0.18716 * M_PI);//cos(M_PI /4.0);//-sin(rangle + M_PI);//5/4
+			rotate[0][1] =  -sin(0.18716 * M_PI );//cos(M_PI /4.0);//cos(rangle + M_PI);//7/4
+			rotate[1][1] = cos(M_PI / 4.0 );//- sin(0.22 * M_PI);// cos(rangle - M_PI / 3);//0.218
+			rotate[2][1] = sin(M_PI / 4.0);//cos(0.22 * M_PI);//cos(rangle + M_PI / 3);//0.187
+			rotate[3][1] = -sin(0.18716 * M_PI);//-cos(M_PI /4.0);//cos(rangle + M_PI);//5/4
+
+			rotate[0][2] = -ROBOTRADIUS;
+			rotate[1][2] = -ROBOTRADIUS;
+			rotate[2][2] = -ROBOTRADIUS;
+			rotate[3][2] = -ROBOTRADIUS;
+
+			motor[0][0] = (rotate[0][0] * speed[0][0] + rotate[0][1] * speed[1][0] + rotate[0][2] * speed[2][0])*SpeedToRPM;
+			motor[1][0] = (rotate[1][0] * speed[0][0] + rotate[1][1] * speed[1][0] + rotate[1][2] * speed[2][0])*SpeedToRPM;
+			motor[2][0] = (rotate[2][0] * speed[0][0] + rotate[2][1] * speed[1][0] + rotate[2][2] * speed[2][0])*SpeedToRPM;
+			motor[3][0] = (rotate[3][0] * speed[0][0] + rotate[3][1] * speed[1][0] + rotate[3][2] * speed[2][0])*SpeedToRPM;
+			
 			char send_buff;
             usart_putchar(&USARTF0,'*');
             usart_putchar(&USARTF0,'~');
-			usart_putchar(&USARTF0,Robot_D[RobotID].M0a);//M3.PWM);
-			usart_putchar(&USARTF0,Robot_D[RobotID].M0b);//M3.PWM);
-			usart_putchar(&USARTF0,Robot_D[RobotID].M1a);//M3.PWM);
-			usart_putchar(&USARTF0,Robot_D[RobotID].M1b);//M3.PWM);
-			usart_putchar(&USARTF0,Robot_D[RobotID].M2a);//M3.PWM);
-			usart_putchar(&USARTF0,Robot_D[RobotID].M2b);//M3.PWM);
-			usart_putchar(&USARTF0,Robot_D[RobotID].M3a);//M3.PWM);
-			usart_putchar(&USARTF0,Robot_D[RobotID].M3b);//M3.PWM);
+			usart_putchar(&USARTF0,motor[0][0] & 0x0ff);
+			usart_putchar(&USARTF0,(motor[0][0] >> 8) & 0x0ff);
+			usart_putchar(&USARTF0,motor[1][0] & 0x0ff);
+			usart_putchar(&USARTF0,(motor[1][0] >> 8) & 0x0ff);
+			usart_putchar(&USARTF0,motor[2][0] & 0x0ff);
+			usart_putchar(&USARTF0,(motor[2][0] >> 8) & 0x0ff);
+			usart_putchar(&USARTF0,motor[3][0] & 0x0ff);
+			usart_putchar(&USARTF0,(motor[3][0] >> 8) & 0x0ff);
 			usart_putchar(&USARTF0,Robot_D[RobotID].P);
 			usart_putchar(&USARTF0,Robot_D[RobotID].I);
 			usart_putchar(&USARTF0,Robot_D[RobotID].D);	
@@ -286,14 +321,23 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt 
 			cnt=0;
 
             Robot_D[RobotID].RID = Buf_Rx_L[0];
-            Robot_D[RobotID].M0a  = Buf_Rx_L[1];
-            Robot_D[RobotID].M0b  = Buf_Rx_L[2];
-            Robot_D[RobotID].M1a  = Buf_Rx_L[3];
-            Robot_D[RobotID].M1b  = Buf_Rx_L[4];
-            Robot_D[RobotID].M2a  = Buf_Rx_L[5];
-            Robot_D[RobotID].M2b  = Buf_Rx_L[6];
-            Robot_D[RobotID].M3a  = Buf_Rx_L[7];
-            Robot_D[RobotID].M3b  = Buf_Rx_L[8];
+            //Robot_D[RobotID].M0a  = Buf_Rx_L[1];
+            //Robot_D[RobotID].M0b  = Buf_Rx_L[2];
+            //Robot_D[RobotID].M1a  = Buf_Rx_L[3];
+            //Robot_D[RobotID].M1b  = Buf_Rx_L[4];
+            //Robot_D[RobotID].M2a  = Buf_Rx_L[5];
+            //Robot_D[RobotID].M2b  = Buf_Rx_L[6];
+            //Robot_D[RobotID].M3a  = Buf_Rx_L[7];
+            //Robot_D[RobotID].M3b  = Buf_Rx_L[8];
+			Robot_D[RobotID].LinearSpeed_x0 = Buf_Rx_L[1];
+			Robot_D[RobotID].LinearSpeed_x1 = Buf_Rx_L[2];
+			Robot_D[RobotID].LinearSpeed_y0 = Buf_Rx_L[3];
+			Robot_D[RobotID].LinearSpeed_y1 = Buf_Rx_L[4];
+			Robot_D[RobotID].RotationSpeed0 = Buf_Rx_L[5];
+			Robot_D[RobotID].RotationSpeed1 = Buf_Rx_L[6];
+			Robot_D[RobotID].Cam_dir0		= Buf_Rx_L[7];
+			Robot_D[RobotID].Cam_dir1		= Buf_Rx_L[8];
+			
             Robot_D[RobotID].KCK = Buf_Rx_L[9];
             Robot_D[RobotID].CHP = Buf_Rx_L[10];
             Robot_D[RobotID].ASK = Buf_Rx_L[11];
