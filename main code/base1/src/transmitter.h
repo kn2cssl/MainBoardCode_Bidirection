@@ -176,7 +176,7 @@ uint8_t Robot_Send_PCK[11],Send_cnt=0;
 	//}
 //}
 
- void SendNewData()
+static void SendNewData()
 {
 	Send_cnt = 0;
 	

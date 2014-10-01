@@ -42,8 +42,8 @@
 #define KCK_SPEED_LOW 0x64
 #define KCK_SPEED_HI  0xFF
 #define KCK_SPEED_RX Robot_D[RobotID].KCK
-#define KCK_Speed_CHIP(_A_) TCC0_CCA=_A_; // PORTC_OUT =(PORTC_OUT & (~KCK_DIR_PIN_bm)) | (_A_<<KCK_DIR_PIN_bp) // _delay_ms(100); TCC0_CCA=0; //KCK_Charge( KCK_CHARGE_ON) KCK_Charge( KCK_CHARGE_OFF) //PORTC_OUT =TCC0_CNT=_A_; ;
-#define KCK_Speed_DIR(_A_) TCC0_CCB=_A_;
+#define KCK_Speed_CHIP(_A_)    TCC0_CCA=_A_; // PORTC_OUT =(PORTC_OUT & (~KCK_DIR_PIN_bm)) | (_A_<<KCK_DIR_PIN_bp) // _delay_ms(100); TCC0_CCA=0; //KCK_Charge( KCK_CHARGE_ON) KCK_Charge( KCK_CHARGE_OFF)   //PORTC_OUT =TCC0_CNT=_A_; ;
+#define KCK_Speed_DIR(_A_)    TCC0_CCB=_A_;
 
 #define KCK_CAP_VFB_PIN_bm	PIN6_bm
 #define KCK_CAP_VFB_PIN_bp	PIN6_bp
@@ -110,6 +110,8 @@
 #define Menu_PORT			PORTH
 
 
+
+
 //LCD
 #define LCD_D4_DIR	PORTB_DIR
 #define LCD_D4_DATA	PORTB_OUT
@@ -136,8 +138,8 @@
 
 #define POWER_VFB_PIN_bm			PIN3_bm  // VFB=Vss * R28/(R28+R27)
 
-#define Disp_L_PORT PORTH
-#define Disp_R_PORT PORTJ
+#define Disp_L_PORT PORTJ
+#define Disp_R_PORT PORTK
 
 #define Segment_A_bm PIN0_bm 
 #define Segment_F_bm PIN1_bm
@@ -182,6 +184,7 @@
 #define NRF24L01_L_IRQ_LINE		PIN0_bm
 #define _FILTER_FREQ 1.0
 #define _FILTER_CONST .11 //(0.02/((1.0/(2.0*3.14*_FILTER_FREQ))+0.02))
+
 #define LOWByte(_A_) ((_A_) & 0xff)
 #define HIGHByte(_A_) (((_A_)>>8) & 0xff)
 
