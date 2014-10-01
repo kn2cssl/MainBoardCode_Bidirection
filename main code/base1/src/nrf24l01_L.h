@@ -9,9 +9,9 @@
 #include "initialize.h"
 #include <util/delay.h>
 #define	_CH_0 50			// Channel 0..125
-#define	_CH_1 1	
-#define	_CH_3 100
-#define	_CH_2 125	
+#define	_CH_1 1	//100
+#define _CH_2 125  //125
+#define _CH_3 100
 #define	_Address_Width	5	// 3..5
 #define _Buffer_Size 32 // 1..32
 
