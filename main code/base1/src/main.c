@@ -51,13 +51,14 @@ char buff[2];
 //////////  motor speed variable
 struct Robot 
 {
-	double dir;
-	double L_spead_x;//linear sped x
-	double L_spead_y;//linear sped y
-	double R_spead;  //rotational speed
+	float dir;
+	float L_spead_x;//linear sped x
+	float L_spead_y;//linear sped y
+	float R_spead;  //rotational speed
 }This_Robot;
 
-
+float rotate[4][3],speed[3][1];
+signed int motor[4][1];
 
 
 int flg_off;
@@ -178,33 +179,33 @@ int main (void)
 		
 			//LinearSpeed.x,LinearSpeed.y,ci.cur_pos.dir,RotationSpeed
 			
-			This_Robot.L_spead_x = (float)(( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ) / 100.0);
-			This_Robot.L_spead_y = (float)(( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ) / 100.0);
-			This_Robot.R_spead	 = (float)(( ((Robot_D[RobotID].RotationSpeed0<<8) & 0xff00) | (Robot_D[RobotID].RotationSpeed1 & 0x00ff) ) / 100.0);
-			This_Robot.dir		 = (float)(( ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff) )/100.0); /// in zavie bayad ba gyro daghigh beshe
-
-			double rotate[4][3],speed[3][1];
-			signed int motor[4][1];
+			This_Robot.L_spead_x = 0.011111;(float)(( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ) / 100.0);
+			This_Robot.L_spead_y = 0.123123;(float)(( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ) / 100.0);
+			This_Robot.R_spead	 = 0;(float)(( ((Robot_D[RobotID].RotationSpeed0<<8) & 0xff00) | (Robot_D[RobotID].RotationSpeed1 & 0x00ff) ) / 100.0);
+			This_Robot.dir		 = 2.431;(float)(( ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff) )/100.0); /// in zavie bayad ba gyro daghigh beshe
+			
+			//double rotate[4][3],speed[3][1];
+			//signed int motor[4][1];
 
 			speed[0][0] = -(This_Robot.L_spead_x * cos(This_Robot.dir) + This_Robot.L_spead_y * sin(This_Robot.dir));
 			speed[1][0] = -(-This_Robot.L_spead_x * sin(This_Robot.dir) + This_Robot.L_spead_y * cos(This_Robot.dir));
 			speed[2][0] = -(This_Robot.R_spead);
 
-			rotate[0][0] = cos( 0.18716 * M_PI);//cos(M_PI /4.0);//-sin(rangle + M_PI);//7/4
-			rotate[1][0] = sin( M_PI / 4.0 );//-cos(0.22 * M_PI);//-sin(rangle - M_PI / 3);//0.218
-			rotate[2][0] = -cos( M_PI / 4.0 );//-sin(0.22 * M_PI);//-sin(rangle + M_PI / 3);//0.78
-			rotate[3][0] = -cos( 0.18716 * M_PI);//cos(M_PI /4.0);//-sin(rangle + M_PI);//5/4
-			rotate[0][1] = -sin(0.18716 * M_PI );//cos(M_PI /4.0);//cos(rangle + M_PI);//7/4
-			rotate[1][1] = cos(M_PI / 4.0 );//- sin(0.22 * M_PI);// cos(rangle - M_PI / 3);//0.218
-			rotate[2][1] = sin(M_PI / 4.0);//cos(0.22 * M_PI);//cos(rangle + M_PI / 3);//0.187
-			rotate[3][1] = -sin(0.18716 * M_PI);//-cos(M_PI /4.0);//cos(rangle + M_PI);//5/4
+			rotate[0][0] = 0.832063;//cos( 0.18716 * M_PI);
+			rotate[1][0] = 0.707107;//sin( M_PI / 4.0 );
+			rotate[2][0] = -0.707107;//-cos( M_PI / 4.0 );
+			rotate[3][0] = -0.832063;//-cos( 0.18716 * M_PI);
+			rotate[0][1] = -0.554682;//-sin(0.18716 * M_PI );
+			rotate[1][1] = 0.707107;//cos(M_PI / 4.0 );
+			rotate[2][1] = 0.707107;//sin(M_PI / 4.0);
+			rotate[3][1] = -0.554682;-sin(0.18716 * M_PI);
 
 			rotate[0][2] = -ROBOTRADIUS;
 			rotate[1][2] = -ROBOTRADIUS;
 			rotate[2][2] = -ROBOTRADIUS;
 			rotate[3][2] = -ROBOTRADIUS;
 
-			motor[0][0] = (rotate[0][0] * speed[0][0] + rotate[0][1] * speed[1][0] + rotate[0][2] * speed[2][0])*SpeedToRPM;
+			motor[0][0] = (signed int)(rotate[0][0] * speed[0][0]*SpeedToRPM + rotate[0][1] * speed[1][0]*SpeedToRPM + rotate[0][2] * speed[2][0]*SpeedToRPM);
 			motor[1][0] = (rotate[1][0] * speed[0][0] + rotate[1][1] * speed[1][0] + rotate[1][2] * speed[2][0])*SpeedToRPM;
 			motor[2][0] = (rotate[2][0] * speed[0][0] + rotate[2][1] * speed[1][0] + rotate[2][2] * speed[2][0])*SpeedToRPM;
 			motor[3][0] = (rotate[3][0] * speed[0][0] + rotate[3][1] * speed[1][0] + rotate[3][2] * speed[2][0])*SpeedToRPM;
@@ -223,7 +224,7 @@ int main (void)
 			usart_putchar(&USARTF0,Robot_D[RobotID].P);
 			usart_putchar(&USARTF0,Robot_D[RobotID].I);
 			usart_putchar(&USARTF0,Robot_D[RobotID].D);	
-			usart_putchar(&USARTF0,Robot_D[RobotID].ASK);	
+			usart_putchar(&USARTF0,3);//Robot_D[RobotID].ASK);// !!TEST!!
 			
 			if ((Robot_D[RobotID].LinearSpeed_x0 == 1) && (Robot_D[RobotID].LinearSpeed_x1 == 2) && (Robot_D[RobotID].LinearSpeed_y0 == 3) && (Robot_D[RobotID].LinearSpeed_y1 == 4) || free_wheel>100) 
 			{
@@ -266,14 +267,6 @@ int main (void)
             }
 
             
-            //Buf_Tx_L[0] = ((Robot_D[RobotID].M0b|(Robot_D[RobotID].M0a<<8))*40)& 0x0FF;
-            //Buf_Tx_L[1] = (((Robot_D[RobotID].M0b|(Robot_D[RobotID].M0a<<8))*40)  >> 8) & 0x0FF;
-            //Buf_Tx_L[2] = ((Robot_D[RobotID].M1b|(Robot_D[RobotID].M1a<<8))*40)& 0x0FF;
-            //Buf_Tx_L[3] = (((Robot_D[RobotID].M1b|(Robot_D[RobotID].M1a<<8))*40)  >> 8) & 0x0FF;
-            //Buf_Tx_L[4] = ((Robot_D[RobotID].M2b|(Robot_D[RobotID].M2a<<8))*40)& 0x0FF;
-            //Buf_Tx_L[5] = (((Robot_D[RobotID].M2b|(Robot_D[RobotID].M2a<<8))*40)  >> 8) & 0x0FF;
-			//Buf_Tx_L[6] = ((Robot_D[RobotID].M3b|(Robot_D[RobotID].M3a<<8))*40)& 0x0FF;
-			//Buf_Tx_L[7] = (((Robot_D[RobotID].M3b|(Robot_D[RobotID].M3a<<8))*40)  >> 8) & 0x0FF;
 			Buf_Tx_L[0] = Robot_D[RobotID].M0a;
 			Buf_Tx_L[1] = Robot_D[RobotID].M0b;
 			Buf_Tx_L[2] = Robot_D[RobotID].M1a;
@@ -503,19 +496,16 @@ void disp_ans(void)
 		
 		uint8_t count1;
 		char str1[200];
-		count1 = sprintf(str1,"%d,%d,%d,%d\r",(int)(This_Robot.L_spead_x*100),(int)(This_Robot.L_spead_y*100),(int)(This_Robot.R_spead*100),(int)(This_Robot.dir*100));//Test_Driver_Data0,Test_Driver_Data1,Test_Driver_Data2,Test_Driver_Data3);
+		count1 = sprintf(str1,"%d,%d,%d,%d,%d,%d,%d \r",(int)(This_Robot.L_spead_x*100),(int)(This_Robot.L_spead_y*100),(int)(This_Robot.R_spead*100),(int)(This_Robot.dir*100),(int)(speed[0][0]*100),(int)(speed[1][0]*100),(int)(speed[2][0]*100));//,motor[0][0],motor[1][0],motor[2][0],motor[3][0]);
+		//(int)(rotate[0][0]*1000),(int)(rotate[1][0]*1000),(int)(rotate[2][0]*1000),(int)(rotate[3][0]*1000),(int)(rotate[0][1]*1000),(int)(rotate[1][1]*1000),(int)(rotate[2][1]*1000),(int)(rotate[3][1]*1000));//
+		//Test_Driver_Data0,Test_Driver_Data1,Test_Driver_Data2,Test_Driver_Data3);
 		
 		
-		
-		
-		
-		
-		
-																				  
 		for (uint8_t i=0;i<count1;i++)
 		{
-			usart_putchar(&USARTE0,str1[i]);	
+			usart_putchar(&USARTE0,str1[i]);
 		}
+		
 	
 }
 
@@ -589,50 +579,48 @@ ISR(USARTF0_RXC_vect)        ///////////Driver M.2  &  M.3
 		break;
 
 		case 1:
-		F0_buff_tmp0=data&0x0ff;
+		F0_buff_tmp0=(data << 8) & 0xff00;
 		ask_cnt0++;
 		break;
 
 		case 2:
-		F0_buff_tmp0|=(data<<8)&0x0ff00;
+		F0_buff_tmp0 |= data & 0x00ff;
 		ask_cnt0++;
 		break;
-		
+
 		case 3:
-		F0_buff_tmp1=data&0x0ff;
+		F0_buff_tmp1 = (data << 8) & 0xff00;
 		ask_cnt0++;
 		break;
-
+		
 		case 4:
-		F0_buff_tmp1|=(data<<8)&0x0ff00;
+		F0_buff_tmp1 |= data & 0x00ff;
 		ask_cnt0++;
 		break;
-		
+
 		case 5:
-		F0_buff_tmp2=data&0x0ff;
-		ask_cnt0++;
-		break;
-
-		case 6:
-		F0_buff_tmp2|=(data<<8)&0x0ff00;
+		F0_buff_tmp2 = (data << 8) & 0xff00;
 		ask_cnt0++;
 		break;
 		
-		case 7:
-		F0_buff_tmp3=data&0x0ff;
+		case 6:
+		F0_buff_tmp2 |= data & 0x00ff;
 		ask_cnt0++;
 		break;
 
+		case 7:
+		F0_buff_tmp3 = (data << 8) & 0xff00;
+		ask_cnt0++;
+		break;
+		
 		case 8:
-		F0_buff_tmp3|=(data<<8)&0x0ff00;
+		F0_buff_tmp3 |= data & 0x00ff;
 		ask_cnt0++;
 		break;
 
 		case 9:
 		if (data=='#')
 		{
-
-			
 			Test_Driver_Data0=F0_buff_tmp0;
 			Test_Driver_Data1=F0_buff_tmp1;
 			Test_Driver_Data2=F0_buff_tmp2;
@@ -661,58 +649,55 @@ ISR(USARTF1_RXC_vect)   ///////////// Driver  M.0  &  M.1
 		break;
 
 		case 1:
-		F1_buff_tmp0=data&0x0ff;
+		F1_buff_tmp0=(data << 8) & 0xff00;
 		ask_cnt1++;
 		break;
 
 		case 2:
-		F1_buff_tmp0|=(data<<8)&0x0ff00;
+		F1_buff_tmp0 |= data & 0x00ff;
 		ask_cnt1++;
 		break;
-		
+
 		case 3:
-		F1_buff_tmp1=data&0x0ff;
+		F1_buff_tmp1 = (data << 8) & 0xff00;
 		ask_cnt1++;
 		break;
-
+		
 		case 4:
-		F1_buff_tmp1|=(data<<8)&0x0ff00;
+		F1_buff_tmp1 |= data & 0x00ff;
 		ask_cnt1++;
 		break;
-		
+
 		case 5:
-		F1_buff_tmp2=data&0x0ff;
-		ask_cnt1++;
-		break;
-
-		case 6:
-		F1_buff_tmp2|=(data<<8)&0x0ff00;
+		F1_buff_tmp2 = (data << 8) & 0xff00;
 		ask_cnt1++;
 		break;
 		
-		case 7:
-		F1_buff_tmp3=data&0x0ff;
+		case 6:
+		F1_buff_tmp2 |= data & 0x00ff;
 		ask_cnt1++;
 		break;
 
+		case 7:
+		F1_buff_tmp3 = (data << 8) & 0xff00;
+		ask_cnt1++;
+		break;
+		
 		case 8:
-		F1_buff_tmp3|=(data<<8)&0x0ff00;
+		F1_buff_tmp3 |= data & 0x00ff;
 		ask_cnt1++;
 		break;
 
 		case 9:
 		if (data=='#')
 		{
+			Test_Driver_Data0=F1_buff_tmp0;
+			Test_Driver_Data1=F1_buff_tmp1;
+			Test_Driver_Data2=F1_buff_tmp2;
+			Test_Driver_Data3=F1_buff_tmp3;
 
-			
-			Test_Driver_Data0=F0_buff_tmp0;
-			Test_Driver_Data1=F0_buff_tmp1;
-			Test_Driver_Data2=F0_buff_tmp2;
-			Test_Driver_Data3=F0_buff_tmp3;
-			
 			ask_cnt1=0;
 		}
-
 		ask_cnt1=0;
 		break;
 	}
