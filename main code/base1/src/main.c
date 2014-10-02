@@ -51,14 +51,16 @@ char buff[2];
 //////////  motor speed variable
 struct Robot 
 {
-	float dir;
-	float L_spead_x;//linear sped x
-	float L_spead_y;//linear sped y
-	float R_spead;  //rotational speed
+	int dir;
+	int L_spead_x;//linear sped x
+	int L_spead_y;//linear sped y
+	int R_spead;  //rotational speed
 }This_Robot;
 
 float rotate[4][3],speed[3][1];
 signed int motor[4][1];
+
+long aza[10];
 
 
 int flg_off;
@@ -179,17 +181,19 @@ int main (void)
 		
 			//LinearSpeed.x,LinearSpeed.y,ci.cur_pos.dir,RotationSpeed
 			
-			This_Robot.L_spead_x = 0.011111;(float)(( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ) / 100.0);
-			This_Robot.L_spead_y = 0.123123;(float)(( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ) / 100.0);
-			This_Robot.R_spead	 = 0;(float)(( ((Robot_D[RobotID].RotationSpeed0<<8) & 0xff00) | (Robot_D[RobotID].RotationSpeed1 & 0x00ff) ) / 100.0);
-			This_Robot.dir		 = 2.431;(float)(( ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff) )/100.0); /// in zavie bayad ba gyro daghigh beshe
+			This_Robot.L_spead_x = (double)(( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ));// / 100.0);
+			This_Robot.L_spead_y = (double)(( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ));// / 100.0);
+			This_Robot.R_spead	 = (double)(( ((Robot_D[RobotID].RotationSpeed0<<8) & 0xff00) | (Robot_D[RobotID].RotationSpeed1 & 0x00ff) ));// / 100.0);
+			This_Robot.dir		 = (double)(( ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff) ));// /100.0); /// in zavie bayad ba gyro daghigh beshe
 			
 			//double rotate[4][3],speed[3][1];
 			//signed int motor[4][1];
-
-			speed[0][0] = -(This_Robot.L_spead_x * cos(This_Robot.dir) + This_Robot.L_spead_y * sin(This_Robot.dir));
-			speed[1][0] = -(-This_Robot.L_spead_x * sin(This_Robot.dir) + This_Robot.L_spead_y * cos(This_Robot.dir));
-			speed[2][0] = -(This_Robot.R_spead);
+			aza[0]=(long)(cos(This_Robot.dir)*1000);(This_Robot.dir*100);
+			aza[1]=(int)(This_Robot.L_spead_y*sin(This_Robot.dir)*1000);
+			aza[2]=-((aza[0]+aza[1]));//
+			speed[0][0] = -(float)((float)This_Robot.L_spead_x * (float)cos(This_Robot.dir/100.0) + (float)This_Robot.L_spead_y * (float)sin(This_Robot.dir/100.0))/100.0;
+			speed[1][0] = -(float)(-(float)This_Robot.L_spead_x * (float)sin(This_Robot.dir/100.0) + (float)This_Robot.L_spead_y * (float)cos(This_Robot.dir/100.0))/100.0;
+			speed[2][0] = -(float)(This_Robot.R_spead)/100.0;
 
 			rotate[0][0] = 0.832063;//cos( 0.18716 * M_PI);
 			rotate[1][0] = 0.707107;//sin( M_PI / 4.0 );
@@ -198,7 +202,7 @@ int main (void)
 			rotate[0][1] = -0.554682;//-sin(0.18716 * M_PI );
 			rotate[1][1] = 0.707107;//cos(M_PI / 4.0 );
 			rotate[2][1] = 0.707107;//sin(M_PI / 4.0);
-			rotate[3][1] = -0.554682;-sin(0.18716 * M_PI);
+			rotate[3][1] = -0.554682;//-sin(0.18716 * M_PI);
 
 			rotate[0][2] = -ROBOTRADIUS;
 			rotate[1][2] = -ROBOTRADIUS;
@@ -496,9 +500,10 @@ void disp_ans(void)
 		
 		uint8_t count1;
 		char str1[200];
-		count1 = sprintf(str1,"%d,%d,%d,%d,%d,%d,%d \r",(int)(This_Robot.L_spead_x*100),(int)(This_Robot.L_spead_y*100),(int)(This_Robot.R_spead*100),(int)(This_Robot.dir*100),(int)(speed[0][0]*100),(int)(speed[1][0]*100),(int)(speed[2][0]*100));//,motor[0][0],motor[1][0],motor[2][0],motor[3][0]);
+		count1 = sprintf(str1,"%d,%d,%d \r",(int)(speed[0][0]*100),(int)(speed[1][0]*100),(int)(speed[2][0]*100));//,motor[0][0],motor[1][0],motor[2][0],motor[3][0]);
 		//(int)(rotate[0][0]*1000),(int)(rotate[1][0]*1000),(int)(rotate[2][0]*1000),(int)(rotate[3][0]*1000),(int)(rotate[0][1]*1000),(int)(rotate[1][1]*1000),(int)(rotate[2][1]*1000),(int)(rotate[3][1]*1000));//
 		//Test_Driver_Data0,Test_Driver_Data1,Test_Driver_Data2,Test_Driver_Data3);
+		//count1 = sprintf(str1,"%d,%d,%d,%d \r",(int)(This_Robot.L_spead_x*100),(int)(This_Robot.L_spead_y*100),(int)(This_Robot.R_spead*100),(int)(This_Robot.dir*100));
 		
 		
 		for (uint8_t i=0;i<count1;i++)
