@@ -33,6 +33,7 @@ void disp_ans(void);
 #define SLAVE4_ADDRESS    3
 #define ROBOTRADIUS 0.090
 #define SpeedToRPM 1375.14
+#define precision 10000.0
 
 /* Global variables */
 int flg_reply=0;
@@ -186,14 +187,9 @@ int main (void)
 			This_Robot.R_spead	 = (double)(( ((Robot_D[RobotID].RotationSpeed0<<8) & 0xff00) | (Robot_D[RobotID].RotationSpeed1 & 0x00ff) ));// / 100.0);
 			This_Robot.dir		 = (double)(( ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff) ));// /100.0); /// in zavie bayad ba gyro daghigh beshe
 			
-			//double rotate[4][3],speed[3][1];
-			//signed int motor[4][1];
-			aza[0]=(long)(cos(This_Robot.dir)*1000);(This_Robot.dir*100);
-			aza[1]=(int)(This_Robot.L_spead_y*sin(This_Robot.dir)*1000);
-			aza[2]=-((aza[0]+aza[1]));//
-			speed[0][0] = -(float)((float)This_Robot.L_spead_x * (float)cos(This_Robot.dir/100.0) + (float)This_Robot.L_spead_y * (float)sin(This_Robot.dir/100.0))/100.0;
-			speed[1][0] = -(float)(-(float)This_Robot.L_spead_x * (float)sin(This_Robot.dir/100.0) + (float)This_Robot.L_spead_y * (float)cos(This_Robot.dir/100.0))/100.0;
-			speed[2][0] = -(float)(This_Robot.R_spead)/100.0;
+			speed[0][0] = -(float)((float)This_Robot.L_spead_x * (float)cos(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)sin(This_Robot.dir/precision))/precision;
+			speed[1][0] = -(float)(-(float)This_Robot.L_spead_x * (float)sin(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)cos(This_Robot.dir/precision))/precision;
+			speed[2][0] = -(float)(This_Robot.R_spead)/precision;
 
 			rotate[0][0] = 0.832063;//cos( 0.18716 * M_PI);
 			rotate[1][0] = 0.707107;//sin( M_PI / 4.0 );
@@ -500,10 +496,10 @@ void disp_ans(void)
 		
 		uint8_t count1;
 		char str1[200];
-		count1 = sprintf(str1,"%d,%d,%d \r",(int)(speed[0][0]*100),(int)(speed[1][0]*100),(int)(speed[2][0]*100));//,motor[0][0],motor[1][0],motor[2][0],motor[3][0]);
+		//count1 = sprintf(str1,"%d,%d,%d \r",(int)(speed[0][0]*100),(int)(speed[1][0]*100),(int)(speed[2][0]*100));//,motor[0][0],motor[1][0],motor[2][0],motor[3][0]);
 		//(int)(rotate[0][0]*1000),(int)(rotate[1][0]*1000),(int)(rotate[2][0]*1000),(int)(rotate[3][0]*1000),(int)(rotate[0][1]*1000),(int)(rotate[1][1]*1000),(int)(rotate[2][1]*1000),(int)(rotate[3][1]*1000));//
 		//Test_Driver_Data0,Test_Driver_Data1,Test_Driver_Data2,Test_Driver_Data3);
-		//count1 = sprintf(str1,"%d,%d,%d,%d \r",(int)(This_Robot.L_spead_x*100),(int)(This_Robot.L_spead_y*100),(int)(This_Robot.R_spead*100),(int)(This_Robot.dir*100));
+		count1 = sprintf(str1,"%d,%d,%d,%d \r",(int)(This_Robot.L_spead_x),(int)(This_Robot.L_spead_y),(int)(This_Robot.R_spead),(int)(This_Robot.dir));
 		
 		
 		for (uint8_t i=0;i<count1;i++)

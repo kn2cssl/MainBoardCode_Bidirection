@@ -38,23 +38,23 @@ struct PCK_Header
 struct Robot_Data
 {
 	uint8_t RID;
-	signed int M0a;
-	signed int M0b;
-	signed int M1a;
-	signed int M1b;
-	signed int M2a;
-	signed int M2b;
-	signed int M3a;
-	signed int M3b;
+	int8_t M0a;
+	int8_t M0b;
+	int8_t M1a;
+	int8_t M1b;
+	int8_t M2a;
+	int8_t M2b;
+	int8_t M3a;
+	int8_t M3b;
 	
-	signed int LinearSpeed_x0;
-	signed int LinearSpeed_x1;
-	signed int LinearSpeed_y0;
-	signed int LinearSpeed_y1;
-	signed int RotationSpeed0;
-	signed int RotationSpeed1;
-	signed int Cam_dir0;
-	signed int Cam_dir1;
+	int8_t LinearSpeed_x0;
+	int8_t LinearSpeed_x1;
+	int8_t LinearSpeed_y0;
+	int8_t LinearSpeed_y1;
+	int8_t RotationSpeed0;
+	int8_t RotationSpeed1;
+	int8_t Cam_dir0;
+	int8_t Cam_dir1;
 	
 	uint8_t KCK;
 	uint8_t CHP;
