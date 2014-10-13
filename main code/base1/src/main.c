@@ -11,16 +11,21 @@
  */
 #include <asf.h>
 #include <stdlib.h>
+#include <avr/eeprom.h>
 #define F_CPU 32000000UL
 #include <util/delay.h>
-
 
 #include "lcd.h"
 #include "initialize.h"
 #include "nrf24l01_L.h"
 #include "transmitter.h"
 #include "Menu.h"
+#include "gyro.h"
+//#include "string.h"
 
+#define CPU_SPEED       32000000
+#define BAUDRATE	    100000
+#define TWI_BAUDSETTING TWI_BAUD(CPU_SPEED, BAUDRATE)
 
 void send_ask(unsigned char);
 void get_MS(char);
@@ -42,6 +47,7 @@ int flg=0;
 int flg1=0;
 int adc =0;
 int count=0;
+int gyroi;
 int driverTGL;
 int free_wheel=0;
 int Test_Driver_Data0 , Test_Driver_Data1 , Test_Driver_Data2 , Test_Driver_Data3 ;
@@ -118,7 +124,14 @@ typedef	struct _Motor_Param Motor_Param;
 Motor_Param M0,M1,M2,M3,MH;
 int main (void)
 {
+	
+	/* Initialize TWI master. */
+	TWI_MasterInit(&twiMaster,&TWID,TWI_MASTER_INTLVL_LO_gc,TWI_BAUDSETTING);
+	TWID.SLAVE.CTRLA=0;  //slave disabled
+	
+	
     En_RC32M();
+	
 
     //Enable LowLevel & HighLevel Interrupts
     PMIC_CTRL |= PMIC_HILVLEN_bm | PMIC_LOLVLEN_bm |PMIC_MEDLVLEN_bm;
@@ -131,7 +144,7 @@ int main (void)
 	USARTE0_init();
     ADCA_init();
     LCDInit();
-    //wdt_enable();
+    wdt_enable();
 
     // Globally enable interrupts
     sei();
@@ -168,24 +181,44 @@ int main (void)
     NRF24L01_L_CE_HIGH;
     _delay_us(130);
     ///////////////////////////////////////////////////////////////////////////////////////////////END   NRF Initialize
-
+	
+	
+	mpu6050_init(); // This Initialization must be after NRF Initialize otherwise nrf wont work!! 
+	
+	long int a=0,b=0;
+	float i;
+	float gyro_degree;
     // Insert application code here, after the board has been initialized.
     while(1)
     {
         asm("wdr");
+		if (gyroi==1)
+		{
+						
+						//a=i2c_readReg(MPUREG_WHOAMI);
+						a=read_mpu();
+						b+=read_mpu()+6;
+						i=(b*2.5174/1000);
+						gyro_degree=i*0.01714;
+						//Test_Driver_Data0=a;
+						//Test_Driver_Data0=b;
+						//Test_Driver_Data2=c;
+						Test_Driver_Data0=gyro_degree*10000;(int)(i);
+						gyroi=0;
+		}
+
+		
         if (ctrlflg)
         {
 
             disp_ans();
 
             ctrlflg = 0;
-		
-			//LinearSpeed.x,LinearSpeed.y,ci.cur_pos.dir,RotationSpeed
 			
 			This_Robot.L_spead_x = (double)(( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ));
 			This_Robot.L_spead_y = (double)(( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ));
 			This_Robot.R_spead	 = (double)(( ((Robot_D[RobotID].RotationSpeed0<<8) & 0xff00) | (Robot_D[RobotID].RotationSpeed1 & 0x00ff) ));
-			This_Robot.dir		 = (double)(( ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff) )); /// in zavie bayad ba gyro daghigh beshe
+			This_Robot.dir		 = gyro_degree;//(double)(( ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff) )); /// in zavie bayad ba gyro daghigh beshe
 			
 			speed[0][0] = -(float)((float)This_Robot.L_spead_x * (float)cos(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)sin(This_Robot.dir/precision))/precision;
 			speed[1][0] = -(float)(-(float)This_Robot.L_spead_x * (float)sin(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)cos(This_Robot.dir/precision))/precision;
@@ -264,8 +297,8 @@ int main (void)
 		            flg1=1;
 	            }
             }
-
-            
+			
+				
 			Buf_Tx_L[0] = Robot_D[RobotID].M0a;
 			Buf_Tx_L[1] = Robot_D[RobotID].M0b;
 			Buf_Tx_L[2] = Robot_D[RobotID].M1a;
@@ -357,13 +390,13 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt 
     }
 }
 
-char timectrl;
+long timectrl;
 
 ISR(TCD0_OVF_vect)
 {
     wdt_reset();
     timectrl++;
-
+	gyroi=1;
     if (timectrl>=20)
     {
         //LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
@@ -372,6 +405,7 @@ ISR(TCD0_OVF_vect)
 		driverTGL=driverTGL%2;
         timectrl=0;
 		Test_RPM = false;
+		
 		
     }
 
@@ -475,62 +509,27 @@ ISR(PORTK_INT0_vect)
 
 void disp_ans(void)
 {
-			//LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
-			LCDGotoXY(0,0);
-			//LCDStringRam("salam");
-			sprintf(str,"Hall: %1d",buff_reply);
-			LCDStringRam(str);
-			LCDGotoXY(0,1);
-			sprintf(str,"ENC: %1d",M3.Speed);
-			LCDStringRam(str);
-			LCDGotoXY(9,1);
-			sprintf(str,"H: %1d",reply2);
-			LCDStringRam(str);
-	
-	//char buf_test[5] ={1,2,3,4,5};
-	//for (uint8_t i=0;i<5;i++)
-	//{
-		//usart_putchar(&USARTE0,buf_test[i]);
-		//}
+		//LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
+		LCDGotoXY(0,0);
+		//LCDStringRam("salam");
+		sprintf(str,"Hall: %1d",buff_reply);
+		LCDStringRam(str);
+		LCDGotoXY(0,1);
+		sprintf(str,"ENC: %1d",M3.Speed);
+		LCDStringRam(str);
+		LCDGotoXY(9,1);
+		sprintf(str,"H: %1d",reply2);
+		LCDStringRam(str);
 		
 		uint8_t count1;
 		char str1[200];
-		//count1 = sprintf(str1,"%d,%d,%d \r",(int)(speed[0][0]*100),(int)(speed[1][0]*100),(int)(speed[2][0]*100));//,motor[0][0],motor[1][0],motor[2][0],motor[3][0]);
-		//(int)(rotate[0][0]*1000),(int)(rotate[1][0]*1000),(int)(rotate[2][0]*1000),(int)(rotate[3][0]*1000),(int)(rotate[0][1]*1000),(int)(rotate[1][1]*1000),(int)(rotate[2][1]*1000),(int)(rotate[3][1]*1000));//
-		//Test_Driver_Data0,Test_Driver_Data1,Test_Driver_Data2,Test_Driver_Data3);
-		count1 = sprintf(str1,"%d,%d,%d,%d \r",(int)(This_Robot.L_spead_x),(int)(This_Robot.L_spead_y),(int)(This_Robot.R_spead),(int)(This_Robot.dir));
-		
-		
+		count1 = sprintf(str1,"%d,%d,%d,%d \r",(int)(This_Robot.L_spead_x),(int)(This_Robot.L_spead_y),(int)(This_Robot.R_spead),(int)(This_Robot.dir));		
 		for (uint8_t i=0;i<count1;i++)
 		{
 			usart_putchar(&USARTE0,str1[i]);
 		}
 		
 	
-}
-
-void send_ask(unsigned char ask)
-{
-	switch(ask)
-	{
-
-		case 0:  //LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
-		usart_putchar(&USARTF0,SLAVE1_ADDRESS);
-		break;
-		case 1: // LED_White_PORT.OUTTGL = LED_White_PIN_bm;
-		usart_putchar(&USARTF0,SLAVE2_ADDRESS);
-		break;
-		case 2:  //LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
-		usart_putchar(&USARTF0,SLAVE3_ADDRESS);
-		break;
-		case 3:
-		usart_putchar(&USARTF0,SLAVE4_ADDRESS);
-		break;
-		default:
-		usart_putchar(&USARTF0,0xff);
-		break;
-	};
-
 }
 
 void get_MS(char rx)
@@ -558,8 +557,7 @@ int buff_d_temp;
 int buff_u_temp;
 unsigned char reply2_tmp;
 
-
-ISR(USARTF0_RXC_vect)        ///////////Driver M.2  &  M.3
+ISR(USARTF0_RXC_vect)   ///////////// Driver M.2  &  M.3
 {
 	
 	//char buff_reply [16];
@@ -633,7 +631,7 @@ ISR(USARTF0_RXC_vect)        ///////////Driver M.2  &  M.3
 	}
 }
 
-ISR(USARTF1_RXC_vect)   ///////////// Driver  M.0  &  M.1
+ISR(USARTF1_RXC_vect)   ///////////// Driver M.0  &  M.1
 {
 	unsigned char data;
 	data=USARTF1_DATA;
@@ -707,6 +705,12 @@ ISR(USARTF1_RXC_vect)   ///////////// Driver  M.0  &  M.1
 ISR(USARTE0_RXC_vect)
 {
 	LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
+}
+
+/*! TWIF Master Interrupt vector. */
+ISR(TWID_TWIM_vect)
+{
+	TWI_MasterInterruptHandler(&twiMaster);
 }
 
 inline int PD_CTRL (int Setpoint,int Feed_Back,int *PID_Err_past,int *d_past,float *i)
