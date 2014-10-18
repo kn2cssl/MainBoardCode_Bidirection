@@ -218,7 +218,7 @@ int main (void)
 			This_Robot.L_spead_x = (double)(( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ));
 			This_Robot.L_spead_y = (double)(( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ));
 			This_Robot.R_spead	 = (double)(( ((Robot_D[RobotID].RotationSpeed0<<8) & 0xff00) | (Robot_D[RobotID].RotationSpeed1 & 0x00ff) ));
-			This_Robot.dir		 = gyro_degree;//(double)(( ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff) )); /// in zavie bayad ba gyro daghigh beshe
+			This_Robot.dir		 = (double)(( ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff) )); //gyro_degree;/// in zavie bayad ba gyro daghigh beshe
 			
 			speed[0][0] = -(float)((float)This_Robot.L_spead_x * (float)cos(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)sin(This_Robot.dir/precision))/precision;
 			speed[1][0] = -(float)(-(float)This_Robot.L_spead_x * (float)sin(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)cos(This_Robot.dir/precision))/precision;
@@ -298,6 +298,10 @@ int main (void)
 	            }
             }
 			
+			Test_Driver_Data0=This_Robot.L_spead_x;100*speed[0][0];//motor[0][0];//
+			Test_Driver_Data1=This_Robot.L_spead_y;100*speed[1][0];//motor[1][0];//
+			Test_Driver_Data2=This_Robot.R_spead;100*speed[3][0];//motor[2][0];//
+			Test_Driver_Data3=This_Robot.dir;//100*motor[3][0];//
 				
 			Buf_Tx_L[0] = Robot_D[RobotID].M0a;
 			Buf_Tx_L[1] = Robot_D[RobotID].M0b;
