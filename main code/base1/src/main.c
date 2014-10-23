@@ -186,8 +186,8 @@ int main (void)
 	mpu6050_init(); // This Initialization must be after NRF Initialize otherwise nrf wont work!! 
 	
 	long int a=0,b=0;
-	float i;
-	float gyro_degree;
+	float i=0;
+	float gyro_degree=0;
     // Insert application code here, after the board has been initialized.
     while(1)
     {
@@ -196,14 +196,27 @@ int main (void)
 		{
 						
 						//a=i2c_readReg(MPUREG_WHOAMI);
-						a=read_mpu();
-						b+=read_mpu()+6;
-						i=(b*2.5174/1000);
-						gyro_degree=i*0.01714;
-						//Test_Driver_Data0=a;
-						//Test_Driver_Data0=b;
+						a=read_mpu()+19;
+						if (abs(a)<4)
+						{
+							a=0;
+						}
+						b+=a;
+						i=(b*2.5174/1000);// Data conversion factor to angle :2.5174/1000
+						gyro_degree=i*0.01745;//pi/180
+						if (gyro_degree>3.1415)
+						{
+							gyro_degree=gyro_degree-M_PI*2;
+						}
+						if (gyro_degree<-3.1415)
+						{
+							gyro_degree=gyro_degree+M_PI*2;
+						}
+						
+						//Test_Driver_Data0=gyro_degree*10000;(int)(i);
+						Test_Driver_Data0=b;
+						//Test_Driver_Data1=b;
 						//Test_Driver_Data2=c;
-						Test_Driver_Data0=gyro_degree*10000;(int)(i);
 						gyroi=0;
 		}
 
@@ -222,7 +235,7 @@ int main (void)
 			
 			speed[0][0] = -(float)((float)This_Robot.L_spead_x * (float)cos(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)sin(This_Robot.dir/precision))/precision;
 			speed[1][0] = -(float)(-(float)This_Robot.L_spead_x * (float)sin(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)cos(This_Robot.dir/precision))/precision;
-			speed[2][0] = -(float)(This_Robot.R_spead)/precision;
+			speed[2][0] = -gyro_degree;-(float)(This_Robot.R_spead)/precision;
 
 			rotate[0][0] = 0.832063;//cos( 0.18716 * M_PI);
 			rotate[1][0] = 0.707107;//sin( M_PI / 4.0 );
@@ -298,10 +311,10 @@ int main (void)
 	            }
             }
 			
-			Test_Driver_Data0=This_Robot.L_spead_x;100*speed[0][0];//motor[0][0];//
-			Test_Driver_Data1=This_Robot.L_spead_y;100*speed[1][0];//motor[1][0];//
-			Test_Driver_Data2=This_Robot.R_spead;100*speed[3][0];//motor[2][0];//
-			Test_Driver_Data3=This_Robot.dir;//100*motor[3][0];//
+			//Test_Driver_Data0=This_Robot.L_spead_x;100*speed[0][0];//motor[0][0];//
+			//Test_Driver_Data1=This_Robot.L_spead_y;100*speed[1][0];//motor[1][0];//
+			//Test_Driver_Data2=This_Robot.R_spead;100*speed[3][0];//motor[2][0];//
+			//Test_Driver_Data3=This_Robot.dir;//100*motor[3][0];//
 				
 			Buf_Tx_L[0] = Robot_D[RobotID].M0a;
 			Buf_Tx_L[1] = Robot_D[RobotID].M0b;
@@ -419,7 +432,7 @@ ISR(TCD0_OVF_vect)
     {
 
         if(kck_time<3000){
-            kck_time++;KCK_Charge(KCK_CHARGE_OFF); KCK_Speed_DIR(KCK_SPEED_HI);}
+            kck_time++;KCK_Charge(KCK_CHARGE_OFF); KCK_Speed_DIR(KCK_SPEED_RX);}
         else {
             KCK_Speed_DIR(KCK_SPEED_OFF);KCK_Charge(KCK_CHARGE_ON); kck_time=0; flg=0;}
 
