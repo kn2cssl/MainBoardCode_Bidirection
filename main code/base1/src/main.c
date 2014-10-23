@@ -222,13 +222,21 @@ int main (void)
 				PORTC.OUTCLR=PIN2_bm;
 			}
 
-            if (KCK_DSH_SW| (Robot_D[RobotID].KCK))
+            if (KCK_DSH_SW |(Robot_D[RobotID].KCK))
             {
 	            if (KCK_Sens2)
 	            {
 		            flg=1;
+					if (KCK_DSH_SW)
+					{
+						Robot_D[RobotID].KCK= KCK_SPEED_HI;
+					}
 	            }
             }
+			if (KCK_DSH_SW)
+			{
+				Robot_D[RobotID].KCK= KCK_SPEED_HI;
+			}
 
             if ((Robot_D[RobotID].CHP))
             {
@@ -355,7 +363,7 @@ ISR(TCD0_OVF_vect)
     {
 
         if(kck_time<3000){
-            kck_time++;KCK_Charge(KCK_CHARGE_OFF); KCK_Speed_DIR(KCK_SPEED_HI);}
+            kck_time++;KCK_Charge(KCK_CHARGE_OFF); KCK_Speed_DIR(KCK_SPEED_RX);}
         else {
             KCK_Speed_DIR(KCK_SPEED_OFF);KCK_Charge(KCK_CHARGE_ON); kck_time=0; flg=0;}
 
