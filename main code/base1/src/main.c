@@ -59,6 +59,7 @@ char buff[2];
 struct Robot 
 {
 	int dir;
+	int dir_cam;
 	int L_spead_x;//linear sped x
 	int L_spead_y;//linear sped y
 	int R_spead;  //rotational speed
@@ -187,9 +188,9 @@ int main (void)
 	
 	mpu6050_init(); // This Initialization must be after NRF Initialize otherwise nrf wont work!! 
 	
- 	long int a=0,b=0;
+ 	long int yaw_speed=0,yaw_rot=0;
  	float i=0;
-     int c=0;
+    int c=0;
  	float gyro_degree=0;
 	int icounter=0;
     // Insert application code here, after the board has been initialized.
@@ -200,50 +201,33 @@ int main (void)
 		{
 						
 						//a=i2c_readReg(MPUREG_WHOAMI);
-						a=read_mpu()+19;
-						if (abs(a)<6)
+						yaw_speed=read_mpu()+7;
+						if (abs(yaw_speed)<50)
 						{
-							a=0;
+							yaw_speed=0;
 						}
 
-						b-=a;
+						yaw_rot-=yaw_speed;
 						
 						if (icounter<6)
 						{
-							b=0;
+							yaw_rot=0;
 							icounter++;
 						}
-						
-						//if(b>1000)
-						//{
-							//c++;
-							//b=b-1000;
-						//}
-						if (b>88935)
+						if (yaw_rot>88935)
 						{
-							b=-88935;
+							yaw_rot=-88935;
 						}
-						if (b<-88935)
+						if (yaw_rot<-88935)
 						{
-							b=88935;
+							yaw_rot=88935;
 						}
 
-						i=(b*2.0226/1000);// Data conversion factor to angle :2.5174/1000
+						i=(yaw_rot*2.0226/1000);// Data conversion factor to angle :2.5174/1000
 						gyro_degree=i*0.01745;//pi/180
-						//if (gyro_degree>3.1415)
-						//{
-							//gyro_degree=gyro_degree-M_PI*2;
-						//}
-						//if (gyro_degree<-3.1415)
-						//{
-							//gyro_degree=gyro_degree+M_PI*2;
-						//}
 						
-						
-						Test_Driver_Data0=gyro_degree*10000;(int)(i);
-						Test_Driver_Data1=b;
-						//Test_Driver_Data1=b;
-						//Test_Driver_Data1=c;
+						Test_Driver_Data0=yaw_speed;gyro_degree*10000;(int)(i);
+						Test_Driver_Data1=yaw_rot;
 						gyroi=0;
 		}
 
@@ -255,14 +239,45 @@ int main (void)
 
             ctrlflg = 0;
 			
-			This_Robot.L_spead_x = (double)(( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ));
-			This_Robot.L_spead_y = (double)(( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ));
-			This_Robot.R_spead	 = (double)(( ((Robot_D[RobotID].RotationSpeed0<<8) & 0xff00) | (Robot_D[RobotID].RotationSpeed1 & 0x00ff) ));
-			This_Robot.dir		 = (double)(( ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff) )); //gyro_degree;/// in zavie bayad ba gyro daghigh beshe
+			This_Robot.L_spead_x = (( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ));
+			This_Robot.L_spead_y = (( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ));
+			This_Robot.R_spead	 = (( ((Robot_D[RobotID].RotationSpeed0<<8) & 0xff00) | (Robot_D[RobotID].RotationSpeed1 & 0x00ff) ));
+			
+//**************************************************robot dir setting************************************************************//			
+			if (Robot_D[RobotID].ASK == 0) 
+			{
+				if (This_Robot.dir_cam != ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff) )
+				{
+					This_Robot.dir_cam = ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff);
+					yaw_rot=0;
+				}
+				else
+				{
+					This_Robot.dir = gyro_degree*precision + This_Robot.dir_cam;
+				}
+			}
+			
+			if (Robot_D[RobotID].ASK==1)
+			{
+				This_Robot.dir = gyro_degree*precision;	
+			}
+			
+			if (Robot_D[RobotID].ASK == 2)
+			{
+				This_Robot.dir = ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff);
+			}
+			
+			if (Robot_D[RobotID].ASK == 3)
+			{
+				This_Robot.L_spead_x =0;
+				This_Robot.L_spead_y =0;
+				This_Robot.R_spead	 =0;
+			}
+//**************************************************robot dir setting************************************************************//			
 			
 			speed[0][0] = -(float)((float)This_Robot.L_spead_x * (float)cos(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)sin(This_Robot.dir/precision))/precision;
 			speed[1][0] = -(float)(-(float)This_Robot.L_spead_x * (float)sin(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)cos(This_Robot.dir/precision))/precision;
-			speed[2][0] = -gyro_degree;-(float)(This_Robot.R_spead)/precision;
+			speed[2][0] = -(float)(This_Robot.R_spead)/precision;
 
 			rotate[0][0] = 0.832063;//cos( 0.18716 * M_PI);
 			rotate[1][0] = 0.707107;//sin( M_PI / 4.0 );
