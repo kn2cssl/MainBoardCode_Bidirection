@@ -106,6 +106,8 @@ char Address[_Address_Width] = { 0x11, 0x22, 0x33, 0x44, 0x55};//pipe0 {0xE7,0xE
 float kp,ki,kd;	
 char ctrlflg=0;
 
+
+
 inline int PD_CTRL (int Setpoint,int Feed_Back,int *PID_Err_past,int *d_past,float *i);
 struct _Motor_Param
 {
@@ -185,9 +187,11 @@ int main (void)
 	
 	mpu6050_init(); // This Initialization must be after NRF Initialize otherwise nrf wont work!! 
 	
-	long int a=0,b=0;
-	float i=0;
-	float gyro_degree=0;
+ 	long int a=0,b=0;
+ 	float i=0;
+     int c=0;
+ 	float gyro_degree=0;
+	int icounter=0;
     // Insert application code here, after the board has been initialized.
     while(1)
     {
@@ -197,26 +201,49 @@ int main (void)
 						
 						//a=i2c_readReg(MPUREG_WHOAMI);
 						a=read_mpu()+19;
-						if (abs(a)<4)
+						if (abs(a)<6)
 						{
 							a=0;
 						}
-						b+=a;
-						i=(b*2.5174/1000);// Data conversion factor to angle :2.5174/1000
-						gyro_degree=i*0.01745;//pi/180
-						if (gyro_degree>3.1415)
+
+						b-=a;
+						
+						if (icounter<6)
 						{
-							gyro_degree=gyro_degree-M_PI*2;
-						}
-						if (gyro_degree<-3.1415)
-						{
-							gyro_degree=gyro_degree+M_PI*2;
+							b=0;
+							icounter++;
 						}
 						
-						//Test_Driver_Data0=gyro_degree*10000;(int)(i);
-						Test_Driver_Data0=b;
+						//if(b>1000)
+						//{
+							//c++;
+							//b=b-1000;
+						//}
+						if (b>88935)
+						{
+							b=-88935;
+						}
+						if (b<-88935)
+						{
+							b=88935;
+						}
+
+						i=(b*2.0226/1000);// Data conversion factor to angle :2.5174/1000
+						gyro_degree=i*0.01745;//pi/180
+						//if (gyro_degree>3.1415)
+						//{
+							//gyro_degree=gyro_degree-M_PI*2;
+						//}
+						//if (gyro_degree<-3.1415)
+						//{
+							//gyro_degree=gyro_degree+M_PI*2;
+						//}
+						
+						
+						Test_Driver_Data0=gyro_degree*10000;(int)(i);
+						Test_Driver_Data1=b;
 						//Test_Driver_Data1=b;
-						//Test_Driver_Data2=c;
+						//Test_Driver_Data1=c;
 						gyroi=0;
 		}
 
