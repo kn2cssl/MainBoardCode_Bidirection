@@ -245,16 +245,7 @@ int main (void)
 		            flg1=1;
 	            }
             }
-
-            
-            //Buf_Tx_L[0] = ((Robot_D[RobotID].M0b|(Robot_D[RobotID].M0a<<8))*40)& 0x0FF;
-            //Buf_Tx_L[1] = (((Robot_D[RobotID].M0b|(Robot_D[RobotID].M0a<<8))*40)  >> 8) & 0x0FF;
-            //Buf_Tx_L[2] = ((Robot_D[RobotID].M1b|(Robot_D[RobotID].M1a<<8))*40)& 0x0FF;
-            //Buf_Tx_L[3] = (((Robot_D[RobotID].M1b|(Robot_D[RobotID].M1a<<8))*40)  >> 8) & 0x0FF;
-            //Buf_Tx_L[4] = ((Robot_D[RobotID].M2b|(Robot_D[RobotID].M2a<<8))*40)& 0x0FF;
-            //Buf_Tx_L[5] = (((Robot_D[RobotID].M2b|(Robot_D[RobotID].M2a<<8))*40)  >> 8) & 0x0FF;
-			//Buf_Tx_L[6] = ((Robot_D[RobotID].M3b|(Robot_D[RobotID].M3a<<8))*40)& 0x0FF;
-			//Buf_Tx_L[7] = (((Robot_D[RobotID].M3b|(Robot_D[RobotID].M3a<<8))*40)  >> 8) & 0x0FF;
+			
 			Buf_Tx_L[0] = Robot_D[RobotID].M0a;
 			Buf_Tx_L[1] = Robot_D[RobotID].M0b;
 			Buf_Tx_L[2] = Robot_D[RobotID].M1a;
@@ -542,7 +533,7 @@ ISR(USARTF0_RXC_vect)        ///////////Driver M.2  &  M.3
 	//char buff_reply [16];
 	unsigned char data;
 	data=USARTF0_DATA;
-   
+
 	
 
 	switch(ask_cnt0)
@@ -550,60 +541,58 @@ ISR(USARTF0_RXC_vect)        ///////////Driver M.2  &  M.3
 		case 0:
 		if (data== '*')
 		{
-			
 			ask_cnt0++;
 		}
 		break;
 
 		case 1:
-		F0_buff_tmp0=data&0x0ff;
+		F0_buff_tmp0=(data<<8)&0x0ff00;
 		ask_cnt0++;
 		break;
 
 		case 2:
-		F0_buff_tmp0|=(data<<8)&0x0ff00;
+		F0_buff_tmp0|=data&0x00ff;
 		ask_cnt0++;
 		break;
 		
 		case 3:
-		F0_buff_tmp1=data&0x0ff;
+		F0_buff_tmp1=(data<<8)&0x0ff00;
 		ask_cnt0++;
 		break;
 
 		case 4:
-		F0_buff_tmp1|=(data<<8)&0x0ff00;
+		F0_buff_tmp1|=data&0x0ff;
 		ask_cnt0++;
 		break;
 		
 		case 5:
-		F0_buff_tmp2=data&0x0ff;
+		F0_buff_tmp2=(data<<8)&0x0ff00;
 		ask_cnt0++;
 		break;
 
 		case 6:
-		F0_buff_tmp2|=(data<<8)&0x0ff00;
+		F0_buff_tmp2|=data&0x0ff;
 		ask_cnt0++;
 		break;
 		
 		case 7:
-		F0_buff_tmp3=data&0x0ff;
+		F0_buff_tmp3=(data<<8)&0x0ff00;
 		ask_cnt0++;
 		break;
 
 		case 8:
-		F0_buff_tmp3|=(data<<8)&0x0ff00;
+		F0_buff_tmp3|=data&0x0ff;
 		ask_cnt0++;
 		break;
 
 		case 9:
 		if (data=='#')
 		{
-
-			
 			Test_Driver_Data0=F0_buff_tmp0;
 			Test_Driver_Data1=F0_buff_tmp1;
 			Test_Driver_Data2=F0_buff_tmp2;
 			Test_Driver_Data3=F0_buff_tmp3;
+
 
 			ask_cnt0=0;
 		}
@@ -628,54 +617,56 @@ ISR(USARTF1_RXC_vect)   ///////////// Driver  M.0  &  M.1
 		break;
 
 		case 1:
-		F1_buff_tmp0=data&0x0ff;
+		F1_buff_tmp0 =(data<<8)&0x0ff00;
 		ask_cnt1++;
 		break;
-
+		
 		case 2:
-		F1_buff_tmp0|=(data<<8)&0x0ff00;
+		//F1_buff_tmp0|=data&0x00ff;
 		ask_cnt1++;
 		break;
 		
 		case 3:
-		F1_buff_tmp1=data&0x0ff;
+		F1_buff_tmp1=(data<<8)&0x0ff00;
 		ask_cnt1++;
 		break;
 
 		case 4:
-		F1_buff_tmp1|=(data<<8)&0x0ff00;
+		F1_buff_tmp1|=data&0x00ff;
 		ask_cnt1++;
 		break;
 		
 		case 5:
-		F1_buff_tmp2=data&0x0ff;
-		ask_cnt1++;
-		break;
-
-		case 6:
-		F1_buff_tmp2|=(data<<8)&0x0ff00;
+		F1_buff_tmp2=(data<<8)&0x0ff00;
 		ask_cnt1++;
 		break;
 		
-		case 7:
-		F1_buff_tmp3=data&0x0ff;
+		case 6:
+		F1_buff_tmp2|=data&0x00ff;
 		ask_cnt1++;
 		break;
 
-		case 8:
-		F1_buff_tmp3|=(data<<8)&0x0ff00;
+		case 7:
+		F1_buff_tmp3=(data<<8)&0x0ff00;
 		ask_cnt1++;
 		break;
+		
+		case 8:
+		F1_buff_tmp3|=data&0x00ff;
+		ask_cnt1++;
+		break;
+
+
 
 		case 9:
 		if (data=='#')
 		{
 
 			
-			Test_Driver_Data0=F0_buff_tmp0;
-			Test_Driver_Data1=F0_buff_tmp1;
-			Test_Driver_Data2=F0_buff_tmp2;
-			Test_Driver_Data3=F0_buff_tmp3;
+			Test_Driver_Data0=F1_buff_tmp0;
+			Test_Driver_Data1=F1_buff_tmp1;
+			Test_Driver_Data2=F1_buff_tmp2;
+			Test_Driver_Data3=F1_buff_tmp3;
 			
 			ask_cnt1=0;
 		}
