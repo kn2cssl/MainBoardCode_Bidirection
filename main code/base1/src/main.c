@@ -622,7 +622,7 @@ ISR(USARTF1_RXC_vect)   ///////////// Driver  M.0  &  M.1
 		break;
 		
 		case 2:
-		//F1_buff_tmp0|=data&0x00ff;
+		F1_buff_tmp0|=data&0x00ff;
 		ask_cnt1++;
 		break;
 		
