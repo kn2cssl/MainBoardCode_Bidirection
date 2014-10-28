@@ -193,31 +193,24 @@ int main (void)
 				//
 			//}
 			
-
-			//if (curr_alarm0 || curr_alarm1 || curr_alarm2 || curr_alarm3)   /////////  alarm of cuurent ov
-			//{
-				//driverTGL=1;
-			//}
-			//else
-			//driverTGL=0;
-			current_ov = curr_alarm0 || curr_alarm1 || curr_alarm2 || curr_alarm3;
-			char send_buff;
+			current_ov=curr_alarm0 || curr_alarm1 || curr_alarm2 || curr_alarm3;
 			if (curr_alarm0 || curr_alarm1 || curr_alarm2 || curr_alarm3)   /////////  alarm of cuurent ov
 			{
 				driverTGL=1;
 			}
 			else
 			driverTGL=0;
+			
             usart_putchar(&USARTF0,'*');
             usart_putchar(&USARTF0,'~');
-			usart_putchar(&USARTF0,0xE8);//Robot_D[RobotID].M0a);//M3.PWM);
-			usart_putchar(&USARTF0,0x03);//Robot_D[RobotID].M0b);//M3.PWM);
-			usart_putchar(&USARTF0,0xE8);//Robot_D[RobotID].M1a);//M3.PWM);
-			usart_putchar(&USARTF0,0x03);//0x03);//Robot_D[RobotID].M1b);//M3.PWM);
-			usart_putchar(&USARTF0,0xE8);//Robot_D[RobotID].M2a);//M3.PWM);
-			usart_putchar(&USARTF0,0x03);//Robot_D[RobotID].M2b);//M3.PWM);
-			usart_putchar(&USARTF0,0xE8);//Robot_D[RobotID].M3a);//M3.PWM);
-			usart_putchar(&USARTF0,0x03);//Robot_D[RobotID].M3b);//M3.PWM);
+			usart_putchar(&USARTF0,Robot_D[RobotID].M0a);//0xE8);//M3.PWM);
+			usart_putchar(&USARTF0,Robot_D[RobotID].M0b);//0x03);//M3.PWM);
+			usart_putchar(&USARTF0,Robot_D[RobotID].M1a);//0xE8);//M3.PWM);
+			usart_putchar(&USARTF0,Robot_D[RobotID].M1b);//0x03);//0x03);//M3.PWM);
+			usart_putchar(&USARTF0,Robot_D[RobotID].M2a);//0xE8);//M3.PWM);
+			usart_putchar(&USARTF0,Robot_D[RobotID].M2b);//0x03);//M3.PWM);
+			usart_putchar(&USARTF0,Robot_D[RobotID].M3a);//0xE8);//M3.PWM);
+			usart_putchar(&USARTF0,Robot_D[RobotID].M3b);//0x03);//M3.PWM);
 			usart_putchar(&USARTF0,Robot_D[RobotID].P);
 			usart_putchar(&USARTF0,Robot_D[RobotID].I);
 			usart_putchar(&USARTF0,Robot_D[RobotID].D);	
@@ -225,7 +218,7 @@ int main (void)
 			
 			if ((Robot_D[RobotID].M0a == 1) && (Robot_D[RobotID].M0b == 2) && (Robot_D[RobotID].M1a==3) && (Robot_D[RobotID].M1b == 4) || free_wheel>100) 
 			{
-				//driverTGL=1;
+				driverTGL=1;
 			}
 			else
 			{
@@ -385,8 +378,8 @@ ISR(TCD0_OVF_vect)
     {
         //LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
         ctrlflg=1;
-		driverTGL++;
-		driverTGL=driverTGL%2;
+		//driverTGL++;
+		//driverTGL=driverTGL%2;
         timectrl=0;
 		Test_RPM = false;
 		
@@ -571,13 +564,13 @@ int buff_u_temp;
 unsigned char reply2_tmp;
 
 
-ISR(USARTF0_RXC_vect)   ///////////// Driver M.2  &  M.3
+ISR(USARTF0_RXC_vect)        ///////////Driver M.2  &  M.3
 {
 	
 	//char buff_reply [16];
 	unsigned char data;
 	data=USARTF0_DATA;
-	
+
 	
 
 	switch(ask_cnt0)
@@ -585,48 +578,47 @@ ISR(USARTF0_RXC_vect)   ///////////// Driver M.2  &  M.3
 		case 0:
 		if (data== '*')
 		{
-			
 			ask_cnt0++;
 		}
 		break;
 
 		case 1:
-		F0_buff_tmp0=(data << 8) & 0xff00;
+		F0_buff_tmp0=(data<<8)&0x0ff00;
 		ask_cnt0++;
 		break;
 
 		case 2:
-		F0_buff_tmp0 |= data & 0x00ff;
-		ask_cnt0++;
-		break;
-
-		case 3:
-		F0_buff_tmp1 = (data << 8) & 0xff00;
+		F0_buff_tmp0|=data&0x00ff;
 		ask_cnt0++;
 		break;
 		
-		case 4:
-		F0_buff_tmp1 |= data & 0x00ff;
+		case 3:
+		F0_buff_tmp1=(data<<8)&0x0ff00;
 		ask_cnt0++;
 		break;
 
+		case 4:
+		F0_buff_tmp1|=data&0x0ff;
+		ask_cnt0++;
+		break;
+		
 		//case 5:
-		//F0_buff_tmp2 = (data << 8) & 0xff00;
+		//F0_buff_tmp2=(data<<8)&0x0ff00;
 		//ask_cnt0++;
 		//break;
-		//
+//
 		//case 6:
-		//F0_buff_tmp2 |= data & 0x00ff;
+		//F0_buff_tmp2|=data&0x0ff;
 		//ask_cnt0++;
 		//break;
 		//
 		//case 7:
-		//F0_buff_tmp3 = (data << 8) & 0xff00;
+		//F0_buff_tmp3=(data<<8)&0x0ff00;
 		//ask_cnt0++;
 		//break;
-		//
+//
 		//case 8:
-		//F0_buff_tmp3 |= data & 0x00ff;
+		//F0_buff_tmp3|=data&0x0ff;
 		//ask_cnt0++;
 		//break;
 
@@ -638,6 +630,7 @@ ISR(USARTF0_RXC_vect)   ///////////// Driver M.2  &  M.3
 			Test_Driver_Data2=0;//F0_buff_tmp2;
 			Test_Driver_Data3=0;//F0_buff_tmp3;
 
+
 			ask_cnt0=0;
 		}
 		ask_cnt0=0;
@@ -645,7 +638,7 @@ ISR(USARTF0_RXC_vect)   ///////////// Driver M.2  &  M.3
 	}
 }
 
-ISR(USARTF1_RXC_vect)   ///////////// Driver M.0  &  M.1
+ISR(USARTF1_RXC_vect)   ///////////// Driver  M.0  &  M.1
 {
 	unsigned char data;
 	data=USARTF1_DATA;
@@ -661,55 +654,60 @@ ISR(USARTF1_RXC_vect)   ///////////// Driver M.0  &  M.1
 		break;
 
 		case 1:
-		F1_buff_tmp0=(data << 8) & 0xff00;
-		ask_cnt1++;
-		break;
-
-		case 2:
-		F1_buff_tmp0 |= data & 0x00ff;
-		ask_cnt1++;
-		break;
-
-		case 3:
-		F1_buff_tmp1 = (data << 8) & 0xff00;
+		F1_buff_tmp0 =(data<<8)&0x0ff00;
 		ask_cnt1++;
 		break;
 		
-		case 4:
-		F1_buff_tmp1 |= data & 0x00ff;
+		case 2:
+		F1_buff_tmp0|=data&0x00ff;
+		ask_cnt1++;
+		break;
+		
+		case 3:
+		F1_buff_tmp1=(data<<8)&0x0ff00;
 		ask_cnt1++;
 		break;
 
+		case 4:
+		F1_buff_tmp1|=data&0x00ff;
+		ask_cnt1++;
+		break;
+		
 		//case 5:
-		//F1_buff_tmp2 = (data << 8) & 0xff00;
+		//F1_buff_tmp2=(data<<8)&0x0ff00;
 		//ask_cnt1++;
 		//break;
 		//
 		//case 6:
-		//F1_buff_tmp2 |= data & 0x00ff;
+		//F1_buff_tmp2|=data&0x00ff;
 		//ask_cnt1++;
 		//break;
-		//
+//
 		//case 7:
-		//F1_buff_tmp3 = (data << 8) & 0xff00;
+		//F1_buff_tmp3=(data<<8)&0x0ff00;
 		//ask_cnt1++;
 		//break;
 		//
 		//case 8:
-		//F1_buff_tmp3 |= data & 0x00ff;
+		//F1_buff_tmp3|=data&0x00ff;
 		//ask_cnt1++;
 		//break;
+
+
 
 		case 5:
 		if (data=='#')
 		{
+
+			
 			Test_Driver_Data0=F1_buff_tmp0;
 			Test_Driver_Data1=F1_buff_tmp1;
 			Test_Driver_Data2=0;//F1_buff_tmp2;
 			Test_Driver_Data3=0;//F1_buff_tmp3;
-
+			
 			ask_cnt1=0;
 		}
+
 		ask_cnt1=0;
 		break;
 	}
@@ -718,7 +716,7 @@ ISR(USARTF1_RXC_vect)   ///////////// Driver M.0  &  M.1
 
 ISR(USARTE0_RXC_vect)
 {
-	LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
+	//LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
 }
 
 inline int PD_CTRL (int Setpoint,int Feed_Back,int *PID_Err_past,int *d_past,float *i)
