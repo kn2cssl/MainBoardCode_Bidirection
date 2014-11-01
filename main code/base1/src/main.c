@@ -35,6 +35,7 @@ void disp_ans(void);
 unsigned char current;
 unsigned char current_ov;
 int curr_alarm=0,curr_alarm0,curr_alarm1,curr_alarm2,curr_alarm3;
+int flg_alarm=0;
 
 int flg_reply=0;
 int cnt=0;
@@ -196,6 +197,7 @@ int main (void)
 			current_ov=curr_alarm0 || curr_alarm1 || curr_alarm2 || curr_alarm3;
 			if (curr_alarm0 || curr_alarm1 || curr_alarm2 || curr_alarm3)   /////////  alarm of cuurent ov
 			{
+				Buzzer_PORT.OUTSET = (flg_alarm>>Buzzer_PIN_bp);
 				driverTGL=1;
 			}
 			else
@@ -216,7 +218,7 @@ int main (void)
 			usart_putchar(&USARTF0,Robot_D[RobotID].D);	
 			usart_putchar(&USARTF0,Robot_D[RobotID].ASK);	
 			
-			if ((Robot_D[RobotID].M0a == 1) && (Robot_D[RobotID].M0b == 2) && (Robot_D[RobotID].M1a==3) && (Robot_D[RobotID].M1b == 4) || free_wheel>100) 
+			if ((Robot_D[RobotID].M0a == 1) && (Robot_D[RobotID].M0b == 2) && (Robot_D[RobotID].M1a==3) && (Robot_D[RobotID].M1b == 4) || free_wheel>100 || current_ov) 
 			{
 				driverTGL=1;
 			}
@@ -368,12 +370,16 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt 
 }
 
 char timectrl;
+long int t_alarm;
+
+
 
 ISR(TCD0_OVF_vect)
 {
     wdt_reset();
     timectrl++;
 	wireless_reset++;
+	t_alarm++;
     if (timectrl>=20)
     {
         //LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
@@ -384,6 +390,13 @@ ISR(TCD0_OVF_vect)
 		Test_RPM = false;
 		
     }
+	if (t_alarm>=500)
+	{
+		flg_alarm = ~(flg_alarm);
+		t_alarm=0;
+		
+		
+	}
 
     //timer for 1ms
     time_ms++;
