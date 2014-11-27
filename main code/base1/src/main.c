@@ -156,13 +156,7 @@ int main (void)
     while(1)
     {
         asm("wdr");
-		//if (wireless_reset>=80)
-		//{
-			//while(1)
-			//{
-				//
-			//}
-		//}
+		
         if (ctrlflg)
         {
 
@@ -257,8 +251,6 @@ int main (void)
             NRF24L01_L_RF_TX();
         }
         _delay_us(1);
-        //_delay_ms(100);
-        //LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
 
     }
 }
