@@ -199,8 +199,8 @@ void TimerD0_init(void);
 void SPI_Init(void);
 
 void USARTE0_init(void);
-void USARTF0_init(void);
-void USARTF1_init(void);
+void USARTF0_init(void);///////////Driver  M.2  &  M.3
+void USARTF1_init(void);////////// Driver  M.0  &  M.1
 
 void ADCA_init(void);
 void OUT_Bling(PORT_t *OUT_PORT,uint8_t OUT_PIN_bp,uint8_t Speed,uint32_t *Time_ON,uint32_t time_ms);

@@ -176,27 +176,6 @@ uint8_t Robot_Send_PCK[11],Send_cnt=0;
 	//}
 //}
 
-static void SendNewData()
-{
-	Send_cnt = 0;
-	
-	Robot_Send_PCK[0] = START_BYTE0;
-	Robot_Send_PCK[1] = START_BYTE1;
-	Robot_Send_PCK[2] = PCK_S_H.SIB;
-	Robot_Send_PCK[3] = PCK_S_H.CHK;
-	Robot_Send_PCK[4] = PCK_S_H.RID;
-	Robot_Send_PCK[5] = Robot_S_D.PTP;
-	Robot_Send_PCK[6] = Robot_S_D.EN1;
-	Robot_Send_PCK[7] = Robot_S_D.EN2;
-	Robot_Send_PCK[8] = Robot_S_D.EN3;
-	Robot_Send_PCK[9] = Robot_S_D.EN4;
-	Robot_Send_PCK[10] = 0x80;
-	usart_set_dre_interrupt_level(&USARTE0,USART_INT_LVL_LO);
-	usart_put(&USARTE0,Robot_Send_PCK[Send_cnt]);
-	Send_cnt++;
-	
-}
-
 #endif /* TRANSMITTER_H_ */
 
 
