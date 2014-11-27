@@ -233,23 +233,23 @@ int main (void)
 		            flg1=1;
 	            }
             }
-			//Test_Data[0]=100;Robot_D[RobotID].ASK;
-			Buf_Tx_L[0]  = Test_Data[0] & 0xFF;			//drive test data
-			Buf_Tx_L[1]  = (Test_Data[0]>> 8) & 0xFF;	//drive test data
-			Buf_Tx_L[2]  = Test_Data[1] & 0xFF;			//drive test data
-			Buf_Tx_L[3]  = (Test_Data[1]>> 8) & 0xFF;	//drive test data
-			Buf_Tx_L[4]  = Test_Data[2] & 0xFF;			//drive test data
-			Buf_Tx_L[5]  = (Test_Data[2]>> 8) & 0xFF;	//drive test data
-			Buf_Tx_L[6]  = Test_Data[3] & 0xFF;			//drive test data
-			Buf_Tx_L[7]  = (Test_Data[3]>> 8) & 0xFF;	//drive test data
-			Buf_Tx_L[8]  = Test_Data[4] & 0xFF;			
-			Buf_Tx_L[9]  = (Test_Data[4]>> 8) & 0xFF;	
-			Buf_Tx_L[10] = Test_Data[5] & 0xFF;
-			Buf_Tx_L[11] = (Test_Data[5]>> 8) & 0xFF;
-            Buf_Tx_L[12] = Test_Data[6] & 0xFF;
-            Buf_Tx_L[13] = (Test_Data[6]>> 8) & 0xFF;
-            Buf_Tx_L[14] = Test_Data[7] & 0xFF;
-            Buf_Tx_L[15] = (Test_Data[7]>> 8) & 0xFF;
+			Test_Data[0]=Robot_D[RobotID].ASK;
+			Buf_Tx_L[0]  = (Test_Data[0]>> 8) & 0xFF;	//drive test data
+			Buf_Tx_L[1]  = Test_Data[0] & 0xFF;			//drive test data
+			Buf_Tx_L[2]  = (Test_Data[1]>> 8) & 0xFF;	//drive test data			
+			Buf_Tx_L[3]  = Test_Data[1] & 0xFF;			//drive test data
+			Buf_Tx_L[4]  = (Test_Data[2]>> 8) & 0xFF;	//drive test data
+			Buf_Tx_L[5]  = Test_Data[2] & 0xFF;			//drive test data
+			Buf_Tx_L[6]  = (Test_Data[3]>> 8) & 0xFF;	//drive test data
+			Buf_Tx_L[7]  = Test_Data[3] & 0xFF;			//drive test data
+			Buf_Tx_L[8]  = (Test_Data[4]>> 8) & 0xFF;
+			Buf_Tx_L[9]  = Test_Data[4] & 0xFF;			
+			Buf_Tx_L[10] = (Test_Data[5]>> 8) & 0xFF;	
+			Buf_Tx_L[11] = Test_Data[5] & 0xFF;			
+			Buf_Tx_L[12] = (Test_Data[6]>> 8) & 0xFF;
+            Buf_Tx_L[13] = Test_Data[6] & 0xFF;			
+			Buf_Tx_L[14] = (Test_Data[7]>> 8) & 0xFF;
+            Buf_Tx_L[15] = Test_Data[7] & 0xFF;
             Buf_Tx_L[16] = adc >> 4;
             
 
