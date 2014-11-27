@@ -233,7 +233,6 @@ int main (void)
 		            flg1=1;
 	            }
             }
-			Test_Data[0]=Robot_D[RobotID].ASK;
 			Buf_Tx_L[0]  = (Test_Data[0]>> 8) & 0xFF;	//drive test data
 			Buf_Tx_L[1]  = Test_Data[0] & 0xFF;			//drive test data
 			Buf_Tx_L[2]  = (Test_Data[1]>> 8) & 0xFF;	//drive test data			
