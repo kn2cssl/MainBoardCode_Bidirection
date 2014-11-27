@@ -40,7 +40,7 @@ int adc =0;
 int count=0;
 int driverTGL;
 int free_wheel=0;
-int Test_Driver_Data0 , Test_Driver_Data1 , Test_Driver_Data2 , Test_Driver_Data3 ;
+int Test_Data[8];
 char Test_RPM = true;
 char rx[15];
 char buff[2];
@@ -156,33 +156,14 @@ int main (void)
     while(1)
     {
         asm("wdr");
-		//if (wireless_reset>=80)
-		//{
-			//while(1)
-			//{
-				//
-			//}
-		//}
+		
         if (ctrlflg)
         {
 
             disp_ans();
 
             ctrlflg = 0;
-			//if (Test_RPM == true)
-			//{
-				//Robot_D[RobotID].M0a = 0xff;
-				//Robot_D[RobotID].M0b = 0x05;
-				//Robot_D[RobotID].M1a = 0xff;
-				//Robot_D[RobotID].M1b = 0x05;
-				//Robot_D[RobotID].M2a = 0xff;
-				//Robot_D[RobotID].M2b = 0x05;
-				//Robot_D[RobotID].M3a = 0xff;
-				//Robot_D[RobotID].M3b = 0x05;
-				//
-			//}
 
-			char send_buff;
             usart_putchar(&USARTF0,'*');
             usart_putchar(&USARTF0,'~');
 			usart_putchar(&USARTF0,Robot_D[RobotID].M0a);//M3.PWM);
@@ -196,7 +177,7 @@ int main (void)
 			usart_putchar(&USARTF0,Robot_D[RobotID].P);
 			usart_putchar(&USARTF0,Robot_D[RobotID].I);
 			usart_putchar(&USARTF0,Robot_D[RobotID].D);	
-			usart_putchar(&USARTF0,Robot_D[RobotID].ASK);	
+			usart_putchar(&USARTF0,3);//Robot_D[RobotID].ASK);	
 			
 			if ((Robot_D[RobotID].M0a == 1) && (Robot_D[RobotID].M0b == 2) && (Robot_D[RobotID].M1a==3) && (Robot_D[RobotID].M1b == 4) || free_wheel>100) 
 			{
@@ -245,23 +226,22 @@ int main (void)
 		            flg1=1;
 	            }
             }
-			
-			Buf_Tx_L[0] = Robot_D[RobotID].M0a;
-			Buf_Tx_L[1] = Robot_D[RobotID].M0b;
-			Buf_Tx_L[2] = Robot_D[RobotID].M1a;
-			Buf_Tx_L[3] = Robot_D[RobotID].M1b;
-			Buf_Tx_L[4] = Robot_D[RobotID].M2a;
-			Buf_Tx_L[5] = Robot_D[RobotID].M2b;
-			Buf_Tx_L[6] = Robot_D[RobotID].M3a;
-			Buf_Tx_L[7] = Robot_D[RobotID].M3b;
-            Buf_Tx_L[8] = Test_Driver_Data0 & 0xFF;
-            Buf_Tx_L[9] = (Test_Driver_Data0 >> 8) & 0xFF;
-            Buf_Tx_L[10] = Test_Driver_Data1 & 0xFF;
-            Buf_Tx_L[11] = (Test_Driver_Data1 >> 8) & 0xFF;
-            Buf_Tx_L[12] = Test_Driver_Data2 & 0xFF;
-            Buf_Tx_L[13] = (Test_Driver_Data2 >> 8) & 0xFF;
-            Buf_Tx_L[14] = Test_Driver_Data3 & 0xFF;
-            Buf_Tx_L[15] = (Test_Driver_Data3 >> 8) & 0xFF;
+			Buf_Tx_L[0]  = (Test_Data[0]>> 8) & 0xFF;	//drive test data
+			Buf_Tx_L[1]  = Test_Data[0] & 0xFF;			//drive test data
+			Buf_Tx_L[2]  = (Test_Data[1]>> 8) & 0xFF;	//drive test data			
+			Buf_Tx_L[3]  = Test_Data[1] & 0xFF;			//drive test data
+			Buf_Tx_L[4]  = (Test_Data[2]>> 8) & 0xFF;	//drive test data
+			Buf_Tx_L[5]  = Test_Data[2] & 0xFF;			//drive test data
+			Buf_Tx_L[6]  = (Test_Data[3]>> 8) & 0xFF;	//drive test data
+			Buf_Tx_L[7]  = Test_Data[3] & 0xFF;			//drive test data
+			Buf_Tx_L[8]  = (Test_Data[4]>> 8) & 0xFF;
+			Buf_Tx_L[9]  = Test_Data[4] & 0xFF;			
+			Buf_Tx_L[10] = (Test_Data[5]>> 8) & 0xFF;	
+			Buf_Tx_L[11] = Test_Data[5] & 0xFF;			
+			Buf_Tx_L[12] = (Test_Data[6]>> 8) & 0xFF;
+            Buf_Tx_L[13] = Test_Data[6] & 0xFF;			
+			Buf_Tx_L[14] = (Test_Data[7]>> 8) & 0xFF;
+            Buf_Tx_L[15] = Test_Data[7] & 0xFF;
             Buf_Tx_L[16] = adc >> 4;
             
 
@@ -270,8 +250,6 @@ int main (void)
             NRF24L01_L_RF_TX();
         }
         _delay_us(1);
-        //_delay_ms(100);
-        //LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
 
     }
 }
@@ -468,7 +446,7 @@ void disp_ans(void)
 		
 		uint8_t count1;
 		char str1[200];
-		count1 = sprintf(str1,"%d,%d,%d,%d\r",Test_Driver_Data0,Test_Driver_Data1,Test_Driver_Data2,Test_Driver_Data3);
+		count1 = sprintf(str1,"%d,%d,%d,%d\r",Test_Data[0],Test_Data[1],Test_Data[2],Test_Data[3]);
 																				  
 		for (uint8_t i=0;i<count1;i++)
 		{
@@ -527,7 +505,7 @@ int buff_u_temp;
 unsigned char reply2_tmp;
 
 
-ISR(USARTF0_RXC_vect)        ///////////Driver M.2  &  M.3
+ISR(USARTF0_RXC_vect)   ///////////Driver  M.2  &  M.3
 {
 	
 	//char buff_reply [16];
@@ -588,10 +566,10 @@ ISR(USARTF0_RXC_vect)        ///////////Driver M.2  &  M.3
 		case 9:
 		if (data=='#')
 		{
-			Test_Driver_Data0=F0_buff_tmp0;
-			Test_Driver_Data1=F0_buff_tmp1;
-			Test_Driver_Data2=F0_buff_tmp2;
-			Test_Driver_Data3=F0_buff_tmp3;
+			Test_Data[0]=F0_buff_tmp0;
+			Test_Data[1]=F0_buff_tmp1;
+			Test_Data[2]=F0_buff_tmp2;
+			Test_Data[3]=F0_buff_tmp3;
 
 
 			ask_cnt0=0;
@@ -601,7 +579,7 @@ ISR(USARTF0_RXC_vect)        ///////////Driver M.2  &  M.3
 	}
 }
 
-ISR(USARTF1_RXC_vect)   ///////////// Driver  M.0  &  M.1
+ISR(USARTF1_RXC_vect)   ////////// Driver  M.0  &  M.1
 {
 	unsigned char data;
 	data=USARTF1_DATA;
@@ -663,10 +641,10 @@ ISR(USARTF1_RXC_vect)   ///////////// Driver  M.0  &  M.1
 		{
 
 			
-			Test_Driver_Data0=F1_buff_tmp0;
-			Test_Driver_Data1=F1_buff_tmp1;
-			Test_Driver_Data2=F1_buff_tmp2;
-			Test_Driver_Data3=F1_buff_tmp3;
+			Test_Data[0]=F1_buff_tmp0;
+			Test_Data[1]=F1_buff_tmp1;
+			Test_Data[2]=F1_buff_tmp2;
+			Test_Data[3]=F1_buff_tmp3;
 			
 			ask_cnt1=0;
 		}
