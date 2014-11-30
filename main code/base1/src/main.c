@@ -97,6 +97,8 @@ struct _Motor_Param
     char PWM;
 	int RPM;
 };
+int8_t Motor_turn=0;
+
 typedef	struct _Motor_Param Motor_Param;
 Motor_Param M0,M1,M2,M3,MH;
 int main (void)
@@ -164,7 +166,6 @@ int main (void)
 
             ctrlflg = 0;
 
-			char send_buff;
             usart_putchar(&USARTF0,'*');
             usart_putchar(&USARTF0,'~');
 			usart_putchar(&USARTF0,Robot_D[RobotID].M0a);//M3.PWM);
@@ -178,7 +179,9 @@ int main (void)
 			usart_putchar(&USARTF0,Robot_D[RobotID].P);
 			usart_putchar(&USARTF0,Robot_D[RobotID].I);
 			usart_putchar(&USARTF0,Robot_D[RobotID].D);	
-			usart_putchar(&USARTF0,3);//Robot_D[RobotID].ASK);	
+			usart_putchar(&USARTF0,Motor_turn%4);//3);//Robot_D[RobotID].ASK);	
+			
+			Motor_turn =(Motor_turn==4)?0:Motor_turn; 
 			
 			if ((Robot_D[RobotID].M0a == 1) && (Robot_D[RobotID].M0b == 2) && (Robot_D[RobotID].M1a==3) && (Robot_D[RobotID].M1b == 4) || free_wheel>100) 
 			{
@@ -227,6 +230,8 @@ int main (void)
 		            flg1=1;
 	            }
             }
+			Test_Data[4] =	Motor_turn ;
+			
 			Buf_Tx_L[0]  = (Test_Data[0]>> 8) & 0xFF;	//drive test data
 			Buf_Tx_L[1]  = Test_Data[0] & 0xFF;			//drive test data
 			Buf_Tx_L[2]  = (Test_Data[1]>> 8) & 0xFF;	//drive test data			
@@ -571,7 +576,8 @@ ISR(USARTF0_RXC_vect)   ///////////Driver  M.2  &  M.3
 			Test_Data[1]=F0_buff_tmp1;
 			Test_Data[2]=F0_buff_tmp2;
 			Test_Data[3]=F0_buff_tmp3;
-
+			
+			Motor_turn++;
 
 			ask_cnt0=0;
 		}
@@ -640,7 +646,7 @@ ISR(USARTF1_RXC_vect)   ////////// Driver  M.0  &  M.1
 		case 9:
 		if (data=='#')
 		{
-
+			Motor_turn++;
 			
 			Test_Data[0]=F1_buff_tmp0;
 			Test_Data[1]=F1_buff_tmp1;
