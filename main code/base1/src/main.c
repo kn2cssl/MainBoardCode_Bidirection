@@ -179,9 +179,9 @@ int main (void)
 			usart_putchar(&USARTF0,Robot_D[RobotID].P);
 			usart_putchar(&USARTF0,Robot_D[RobotID].I);
 			usart_putchar(&USARTF0,Robot_D[RobotID].D);	
-			usart_putchar(&USARTF0,Motor_turn%4);//3);//Robot_D[RobotID].ASK);	
+			usart_putchar(&USARTF0,Robot_D[RobotID].ASK);	
 			
-			Motor_turn =(Motor_turn==4)?0:Motor_turn; 
+			
 			
 			if ((Robot_D[RobotID].M0a == 1) && (Robot_D[RobotID].M0b == 2) && (Robot_D[RobotID].M1a==3) && (Robot_D[RobotID].M1b == 4) || free_wheel>100) 
 			{
@@ -230,7 +230,6 @@ int main (void)
 		            flg1=1;
 	            }
             }
-			Test_Data[4] =	Motor_turn ;
 			
 			Buf_Tx_L[0]  = (Test_Data[0]>> 8) & 0xFF;	//drive test data
 			Buf_Tx_L[1]  = Test_Data[0] & 0xFF;			//drive test data
@@ -453,6 +452,12 @@ void disp_ans(void)
 		uint8_t count1;
 		char str1[200];
 		count1 = sprintf(str1,"%d,%d,%d,%d\r",Test_Data[0],Test_Data[1],Test_Data[2],Test_Data[3]);
+ 		//if (Test_Data[0] == Motor_turn)
+ 		//{
+			//Motor_turn++;
+		//}
+		
+		Motor_turn =(Motor_turn==4)?0:Motor_turn; 
 																				  
 		for (uint8_t i=0;i<count1;i++)
 		{
@@ -576,8 +581,6 @@ ISR(USARTF0_RXC_vect)   ///////////Driver  M.2  &  M.3
 			Test_Data[1]=F0_buff_tmp1;
 			Test_Data[2]=F0_buff_tmp2;
 			Test_Data[3]=F0_buff_tmp3;
-			
-			Motor_turn++;
 
 			ask_cnt0=0;
 		}
@@ -646,8 +649,6 @@ ISR(USARTF1_RXC_vect)   ////////// Driver  M.0  &  M.1
 		case 9:
 		if (data=='#')
 		{
-			Motor_turn++;
-			
 			Test_Data[0]=F1_buff_tmp0;
 			Test_Data[1]=F1_buff_tmp1;
 			Test_Data[2]=F1_buff_tmp2;
