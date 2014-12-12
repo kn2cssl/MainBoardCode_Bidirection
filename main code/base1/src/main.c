@@ -82,25 +82,17 @@ char Address[_Address_Width] = { 0x11, 0x22, 0x33, 0x44, 0x55};//pipe0 {0xE7,0xE
 
 float kp,ki,kd;	
 char ctrlflg=0;
+int8_t m_reset_counter = 0;
 
 inline int PD_CTRL (int Setpoint,int Feed_Back,int *PID_Err_past,int *d_past,float *i);
 struct _Motor_Param
 {
-    int Encoder;
-	int Hall;
-    int Speed;
-	int HSpeed;
-    int Speed_past;
-	int HSpeed_past;
-    int Err,d,i;
-    int Direction;
-    char PWM;
-	int RPM;
+	int8_t start_times;
 };
 int8_t Motor_turn=0;
 
 typedef	struct _Motor_Param Motor_Param;
-Motor_Param M0,M1,M2,M3,MH;
+Motor_Param M[4];
 int main (void)
 {
     En_RC32M();
@@ -176,20 +168,19 @@ int main (void)
 			usart_putchar(&USARTF0,Robot_D[RobotID].M2b);//M3.PWM);
 			usart_putchar(&USARTF0,Robot_D[RobotID].M3a);//M3.PWM);
 			usart_putchar(&USARTF0,Robot_D[RobotID].M3b);//M3.PWM);
-			usart_putchar(&USARTF0,Robot_D[RobotID].P);
-			usart_putchar(&USARTF0,Robot_D[RobotID].I);
-			usart_putchar(&USARTF0,Robot_D[RobotID].D);	
 			usart_putchar(&USARTF0,Robot_D[RobotID].ASK);	
 			
-			
+			//usart_putchar(&USARTF0,'!');
 			
 			if ((Robot_D[RobotID].M0a == 1) && (Robot_D[RobotID].M0b == 2) && (Robot_D[RobotID].M1a==3) && (Robot_D[RobotID].M1b == 4) || free_wheel>100) 
 			{
-				usart_putchar(&USARTF0,'%');
+
+					usart_putchar(&USARTF0,'%');
+				
 			}
 			else
 			{
-				usart_putchar(&USARTF0,'^');
+					usart_putchar(&USARTF0,'^');
 			}
 			
 			free_wheel++;
@@ -230,6 +221,8 @@ int main (void)
 		            flg1=1;
 	            }
             }
+			
+			Test_Data[0] = M[Robot_D[RobotID].ASK].start_times;//te$t
 			
 			Buf_Tx_L[0]  = (Test_Data[0]>> 8) & 0xFF;	//drive test data
 			Buf_Tx_L[1]  = Test_Data[0] & 0xFF;			//drive test data
@@ -387,27 +380,22 @@ ISR(TCD0_OVF_vect)
 
 ISR(PORTF_INT0_vect)
 {
-
 }
 
 ISR(PORTQ_INT0_vect)
 {
-    M1.Encoder +=(PORTQ_IN&PIN1_bm)?-1:1;
 }
 
 ISR(PORTH_INT0_vect)
 {
-    M0.Encoder +=(PORTH_IN&PIN4_bm)?-1:1;
 }
 
 ISR(PORTC_INT0_vect)
 {
-    M3.Encoder +=(PORTC_IN&PIN4_bm)?-1:1;
 }
 
 ISR(PORTQ_INT1_vect)
 {
-    M2.Encoder +=(PORTQ_IN&PIN2_bm)?-1:1;
 }
 
 ISR(PORTH_INT1_vect)
@@ -431,63 +419,28 @@ ISR(PORTK_INT0_vect)
 
 void disp_ans(void)
 {
-			//LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
-			LCDGotoXY(0,0);
-			//LCDStringRam("salam");
-			sprintf(str,"Hall: %1d",buff_reply);
-			LCDStringRam(str);
-			LCDGotoXY(0,1);
-			sprintf(str,"ENC: %1d",M3.Speed);
-			LCDStringRam(str);
-			LCDGotoXY(9,1);
-			sprintf(str,"H: %1d",reply2);
-			LCDStringRam(str);
+	//LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
+	LCDGotoXY(0,0);
+	//LCDStringRam("salam");
+	sprintf(str,"Hall: %1d",buff_reply);
+	LCDStringRam(str);
+	LCDGotoXY(0,1);
+	sprintf(str,"ENC: %1d",M[0].start_times);
+	LCDStringRam(str);
+	LCDGotoXY(9,1);
+	sprintf(str,"H: %1d",reply2);
+	LCDStringRam(str);
 	
-	//char buf_test[5] ={1,2,3,4,5};
-	//for (uint8_t i=0;i<5;i++)
-	//{
-		//usart_putchar(&USARTE0,buf_test[i]);
-		//}
-		
-		uint8_t count1;
-		char str1[200];
-		count1 = sprintf(str1,"%d,%d,%d,%d\r",Test_Data[0],Test_Data[1],Test_Data[2],Test_Data[3]);
- 		//if (Test_Data[0] == Motor_turn)
- 		//{
-			//Motor_turn++;
-		//}
-		
-		Motor_turn =(Motor_turn==4)?0:Motor_turn; 
-																				  
-		for (uint8_t i=0;i<count1;i++)
-		{
-			usart_putchar(&USARTE0,str1[i]);	
-		}
-	
-}
 
-void send_ask(unsigned char ask)
-{
-	switch(ask)
+	uint8_t count1;
+	char str1[200];
+	count1 = sprintf(str1,"%d,%d,%d,%d\r",Test_Data[0],Test_Data[1],Test_Data[2],Test_Data[3]);
+																			  
+	for (uint8_t i=0;i<count1;i++)
 	{
-
-		case 0:  //LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
-		usart_putchar(&USARTF0,SLAVE1_ADDRESS);
-		break;
-		case 1: // LED_White_PORT.OUTTGL = LED_White_PIN_bm;
-		usart_putchar(&USARTF0,SLAVE2_ADDRESS);
-		break;
-		case 2:  //LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
-		usart_putchar(&USARTF0,SLAVE3_ADDRESS);
-		break;
-		case 3:
-		usart_putchar(&USARTF0,SLAVE4_ADDRESS);
-		break;
-		default:
-		usart_putchar(&USARTF0,0xff);
-		break;
-	};
-
+		usart_putchar(&USARTE0,str1[i]);	
+	}
+	
 }
 
 void get_MS(char rx)
@@ -522,8 +475,6 @@ ISR(USARTF0_RXC_vect)   ///////////Driver  M.2  &  M.3
 	//char buff_reply [16];
 	unsigned char data;
 	data=USARTF0_DATA;
-
-	
 
 	switch(ask_cnt0)
 	{
@@ -581,6 +532,20 @@ ISR(USARTF0_RXC_vect)   ///////////Driver  M.2  &  M.3
 			Test_Data[1]=F0_buff_tmp1;
 			Test_Data[2]=F0_buff_tmp2;
 			Test_Data[3]=F0_buff_tmp3;
+			
+			if (Test_Data[0]=='1' && Test_Data[1]=='2' && Test_Data[2]=='3' && Test_Data[3]=='4')
+			{
+				m_reset_counter++;
+				if ( m_reset_counter == 1 )
+				{
+					M[Robot_D[RobotID].ASK].start_times++;
+				}
+					
+			}
+			else
+			{
+				m_reset_counter = 0 ;
+			}
 
 			ask_cnt0=0;
 		}
@@ -644,8 +609,6 @@ ISR(USARTF1_RXC_vect)   ////////// Driver  M.0  &  M.1
 		ask_cnt1++;
 		break;
 
-
-
 		case 9:
 		if (data=='#')
 		{
@@ -653,6 +616,20 @@ ISR(USARTF1_RXC_vect)   ////////// Driver  M.0  &  M.1
 			Test_Data[1]=F1_buff_tmp1;
 			Test_Data[2]=F1_buff_tmp2;
 			Test_Data[3]=F1_buff_tmp3;
+			
+			if (Test_Data[0]=='1' && Test_Data[1]=='2' && Test_Data[2]=='3' && Test_Data[3]=='4')
+			{
+				m_reset_counter++;
+				if ( m_reset_counter == 1 )
+				{
+					M[Robot_D[RobotID].ASK].start_times++;
+				}
+				
+			}
+			else
+			{
+				m_reset_counter = 0 ;
+			}
 			
 			ask_cnt1=0;
 		}
