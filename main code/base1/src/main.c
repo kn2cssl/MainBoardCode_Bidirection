@@ -81,7 +81,7 @@ char Buf_Tx_L[_Buffer_Size] ;
 char Address[_Address_Width] = { 0x11, 0x22, 0x33, 0x44, 0x55};//pipe0 {0xE7,0xE7,0xE7,0xE7,0xE7};////
 
 float kp,ki,kd;	
-char ctrlflg=0;
+char ctrlflg=0,full_charge=0;
 
 inline int PD_CTRL (int Setpoint,int Feed_Back,int *PID_Err_past,int *d_past,float *i);
 struct _Motor_Param
@@ -156,6 +156,28 @@ int main (void)
     while(1)
     {
         asm("wdr");
+		//Shoot
+		
+		PORTC_OUTCLR=KCK_SH_PIN_bm;
+		if((KCK_Ch_Limit_PORT.IN & KCK_Ch_Limit_PIN_bm)>>KCK_Ch_Limit_PIN_bp)
+		{	full_charge=1;	 
+			tc_disable_cc_channels(&TCC0,TC_CCAEN);
+		}
+		else
+		{
+			if(flg==0)
+			{
+				tc_enable_cc_channels(&TCC0,TC_CCAEN);
+				LED_White_PORT.OUTTGL=LED_White_PIN_bm;
+			}
+			
+		}
+		//if(((PORTH.IN & PIN6_bm)>>PIN6_bp))
+		//{tc_disable_cc_channels(&TCC0,TC_CCBEN);
+			//LED_Green_PORT.OUTTGL=LED_Green_PIN_bm;
+			//LED_Red_PORT.OUTTGL=LED_Red_PIN_bm;
+		//}
+		
 		//if (wireless_reset>=80)
 		//{
 			//while(1)
@@ -209,8 +231,8 @@ int main (void)
 			
 			free_wheel++;
 			
+			//Buzzer
             adc = adc_get_unsigned_result(&ADCA,ADC_CH0);
-
             if (adc<=1240)
             {
                 Buzzer_PORT.OUTSET = Buzzer_PIN_bm;//10.3 volt
@@ -222,21 +244,25 @@ int main (void)
 				PORTC.OUTCLR=PIN2_bm;
 			}
 
-            if (KCK_DSH_SW |(Robot_D[RobotID].KCK))
+			
+            if ((KCK_DSH_SW ))//|(Robot_D[RobotID].KCK))//
             {
+				LED_Red_PORT.OUTTGL=LED_Red_PIN_bm;
 	            if (KCK_Sens2)
 	            {
 		            flg=1;
+					//tc_disable_cc_channels(&TCC0,TC_CCAEN);
+					//LED_White_PORT.OUTTGL=LED_White_PIN_bm;
 					if (KCK_DSH_SW)
 					{
 						Robot_D[RobotID].KCK= KCK_SPEED_HI;
 					}
 	            }
             }
-			if (KCK_DSH_SW)
-			{
-				Robot_D[RobotID].KCK= KCK_SPEED_HI;
-			}
+			//if (KCK_DSH_SW)
+			//{
+				//Robot_D[RobotID].KCK= KCK_SPEED_HI;
+			//}
 
             if ((Robot_D[RobotID].CHP))
             {
@@ -284,7 +310,7 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt 
     uint8_t status_L = NRF24L01_L_WriteReg(W_REGISTER | STATUSe, _TX_DS|_MAX_RT|_RX_DR);
     if((status_L & _RX_DR) == _RX_DR)
     {
-        LED_White_PORT.OUTTGL = LED_White_PIN_bm;
+       // LED_White_PORT.OUTTGL = LED_White_PIN_bm;
 		wireless_reset=0;
         //1) read payload through SPI,
         NRF24L01_L_Read_RX_Buf(Buf_Rx_L, _Buffer_Size);
@@ -318,13 +344,13 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt 
         //4) if there are more data in RX FIFO, repeat from step 1).
     }
     if((status_L&_TX_DS) == _TX_DS)
-    {   LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
+    {   //LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
 		wireless_reset=0;
         //NRF24L01_R_WriteReg(W_REGISTER | STATUSe, _TX_DS);
     }
     if ((status_L&_MAX_RT) == _MAX_RT)
     {
-        LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
+       // LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
         NRF24L01_L_Flush_TX();
         //NRF24L01_R_WriteReg(W_REGISTER | STATUSe, _MAX_RT);
     }
@@ -352,17 +378,46 @@ ISR(TCD0_OVF_vect)
     time_ms++;
     if(flg)
     {
-
-        if(kck_time<3000){
-            kck_time++;KCK_Charge(KCK_CHARGE_OFF); KCK_Speed_DIR(KCK_SPEED_RX);}
+         
+        if(kck_time<2000)
+		{
+            kck_time++;
+			 tc_disable_cc_channels(&TCC0,TC_CCAEN);
+			 if(((PORTH.IN & PIN6_bm)>>PIN6_bp))
+			 tc_disable_cc_channels(&TCC0,TC_CCBEN);
+			 else
+			 {   
+				 if(KCK_DSH_SW)
+				 {
+				  tc_enable_cc_channels(&TCC0,TC_CCBEN);
+				  KCK_Speed_DIR(KCK_SPEED_RX);
+				  full_charge=0;
+				 }
+				 else if(full_charge==1)
+				 {
+				 tc_enable_cc_channels(&TCC0,TC_CCBEN);
+				 KCK_Speed_DIR(KCK_SPEED_RX);
+				 full_charge=0;
+				 }
+			 }
+		}
+			
         else {
-            KCK_Speed_DIR(KCK_SPEED_OFF);KCK_Charge(KCK_CHARGE_ON); kck_time=0; flg=0;}
+            KCK_Speed_DIR(KCK_SPEED_OFF);//KCK_Charge(KCK_CHARGE_ON); 
+			tc_enable_cc_channels(&TCC0,TC_CCAEN);
+			//tc_disable_cc_channels(&TCC0,TC_CCBEN);
+			 kck_time=0; flg=0;}
 
     }
     if(flg1)
     {
-        if(kck_time<100){kck_time++; KCK_Speed_CHIP(KCK_SPEED_HI); KCK_Charge(KCK_CHARGE_OFF);}
-        else {KCK_Speed_CHIP(KCK_SPEED_OFF);KCK_Charge(KCK_CHARGE_ON); kck_time=0; flg1=0;}
+        if(kck_time<100)
+		{kck_time++; //KCK_Speed_CHIP(KCK_SPEED_HI); //KCK_Charge(KCK_CHARGE_OFF);
+		}
+        else {//KCK_Speed_CHIP(KCK_SPEED_OFF);//KCK_Charge(KCK_CHARGE_ON);
+			 tc_enable_cc_channels(&TCC0,TC_CCAEN);
+			 tc_disable_cc_channels(&TCC0,TC_CCBEN);
+			 kck_time=0; flg1=0;}
     }
 
 
@@ -445,7 +500,19 @@ ISR(PORTK_INT0_vect)
 {
 	
 }
-
+ISR(PORTB_INT0_vect)
+{
+	//LED_Green_PORT.OUTSET=LED_Green_PIN_bm;
+	//if((PORTB.IN && PIN6_bm)==1)
+	//{tc_disable_cc_channels(&TCC0,TC_CCAEN);
+		//LED_Red_PORT.OUTSET=LED_Red_PIN_bm;
+	//}
+	//else if((PORTB.IN && PIN6_bm)==0)
+	//{tc_enable_cc_channels(&TCC0,TC_CCAEN);
+		//LED_White_PORT.OUTSET=LED_White_PIN_bm;
+	//}
+	
+}
 void disp_ans(void)
 {
 			//LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;

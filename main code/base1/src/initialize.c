@@ -27,8 +27,10 @@ void En_RC32M(void)
 void PORT_init(void)
 {
 	
-	PORTB_DIRSET = KCK_Charge_PIN_bm;
-	PORTC_DIRSET = KCK_Chip_PIN_bm | KCK_DIR_PIN_bm | Buzzer_PIN_bm | PIN2_bm;
+	//PORTB_DIRSET = KCK_Charge_PIN_bm;
+	//PORTB_DIRSET = KCK_DCh_Limit_PIN_bm;
+	
+	PORTC_DIRSET = KCK_SH_PIN_bm | KCK_DIR_PIN_bm | Buzzer_PIN_bm | PIN2_bm;
 	
 	//PORTC_PIN3CTRL=PORT_ISC_BOTHEDGES_gc;			**encoder int deactivated**
 	//PORTC_INTCTRL = PORT_INT0LVL_LO_gc;
@@ -83,13 +85,15 @@ void PORT_init(void)
 
 void TimerC0_init(void)
 {
-	tc_write_clock_source(&TCC0,TC_CLKSEL_DIV256_gc);
+	tc_write_clock_source(&TCC0,TC_CLKSEL_DIV64_gc);//1
 	tc_set_wgm(&TCC0,TC_WG_SS);
-	tc_write_period(&TCC0,0x00FF);
+	tc_write_period(&TCC0,0x77);//0x01DFF
 	tc_set_direction(&TCC0,TC_UP);
 	tc_enable_cc_channels(&TCC0,TC_CCAEN);
 	tc_enable_cc_channels(&TCC0,TC_CCBEN);
 	tc_enable(&TCC0);
+	tc_write_cc(&TCC0,TC_CCA,0x63);//0x117F//0x0C80
+	//tc_write_cc(&TCC0,TC_CCB,0x40);
 };
 
 
