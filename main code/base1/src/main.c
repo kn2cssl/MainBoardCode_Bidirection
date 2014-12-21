@@ -174,9 +174,7 @@ int main (void)
 			
 			if ((Robot_D[RobotID].M0a == 1) && (Robot_D[RobotID].M0b == 2) && (Robot_D[RobotID].M1a==3) && (Robot_D[RobotID].M1b == 4) || free_wheel>100) 
 			{
-
 					usart_putchar(&USARTF0,'%');
-				
 			}
 			else
 			{
@@ -222,7 +220,12 @@ int main (void)
 	            }
             }
 			
-			Test_Data[0] = M[Robot_D[RobotID].ASK].start_times;//te$t
+			int Vx = ((Robot_D[RobotID].M3a<<8)& 0xff00) | ((Robot_D[RobotID].M3b) & 0x0ff);
+			int Vy = ((Robot_D[RobotID].M2a<<8)& 0xff00) | ((Robot_D[RobotID].M2b) & 0x0ff);
+			
+			//Test_Data[1] = Test_Data[0]-(Vx*0.832063+Vy*0.554682)*1.37514;//M[Robot_D[RobotID].ASK].start_times;//te$t
+			//Test_Data[2]=(Vx*0.832063+Vy*0.554682)*1.37514;
+			//Test_Data[3]=Vy;
 			
 			Buf_Tx_L[0]  = (Test_Data[0]>> 8) & 0xFF;	//drive test data
 			Buf_Tx_L[1]  = Test_Data[0] & 0xFF;			//drive test data
