@@ -168,7 +168,7 @@ int main (void)
 			if(flg==0)
 			{
 				tc_enable_cc_channels(&TCC0,TC_CCAEN);
-				LED_White_PORT.OUTTGL=LED_White_PIN_bm;
+				//LED_White_PORT.OUTTGL=LED_White_PIN_bm;
 			}
 			
 		}
@@ -247,7 +247,7 @@ int main (void)
 			
             if ((KCK_DSH_SW ))//|(Robot_D[RobotID].KCK))//
             {
-				LED_Red_PORT.OUTTGL=LED_Red_PIN_bm;
+				//LED_Red_PORT.OUTTGL=LED_Red_PIN_bm;
 	            if (KCK_Sens2)
 	            {
 		            flg=1;
@@ -291,7 +291,7 @@ int main (void)
             Buf_Tx_L[16] = adc >> 4;
             
 
-            //LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
+            LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
             NRF24L01_L_Write_TX_Buf(Buf_Tx_L, _Buffer_Size);
             NRF24L01_L_RF_TX();
         }
@@ -310,7 +310,7 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt 
     uint8_t status_L = NRF24L01_L_WriteReg(W_REGISTER | STATUSe, _TX_DS|_MAX_RT|_RX_DR);
     if((status_L & _RX_DR) == _RX_DR)
     {
-       // LED_White_PORT.OUTTGL = LED_White_PIN_bm;
+        LED_White_PORT.OUTTGL = LED_White_PIN_bm;
 		wireless_reset=0;
         //1) read payload through SPI,
         NRF24L01_L_Read_RX_Buf(Buf_Rx_L, _Buffer_Size);
@@ -350,7 +350,7 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt 
     }
     if ((status_L&_MAX_RT) == _MAX_RT)
     {
-       // LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
+        LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
         NRF24L01_L_Flush_TX();
         //NRF24L01_R_WriteReg(W_REGISTER | STATUSe, _MAX_RT);
     }
