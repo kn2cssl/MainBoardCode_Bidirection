@@ -92,7 +92,7 @@ void TimerC0_init(void)
 	tc_enable_cc_channels(&TCC0,TC_CCAEN);
 	tc_enable_cc_channels(&TCC0,TC_CCBEN);
 	tc_enable(&TCC0);
-	tc_write_cc(&TCC0,TC_CCA,0x63);//0x117F//0x0C80
+	tc_write_cc(&TCC0,TC_CCA,0x5D);//0x117F//0x0C80
 	//tc_write_cc(&TCC0,TC_CCB,0x40);
 };
 
