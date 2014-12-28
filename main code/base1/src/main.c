@@ -35,58 +35,26 @@ void disp_ans(void);
 int flg=0;
 int flg1=0;
 int adc =0;
-int count=0;
-int driverTGL;
 int free_wheel=0;
-int Test_Data[8];
-char Test_RPM = true;
-char rx[15];
-char buff[2];
-
 int time_memory = 0 ;
 int time_diff = 0 ;
-
 int wireless_reset=0;
-
-int flg_off;
-char str[40];
-char tx1a[1];
-char tx1b[1];
-char tx2a[1];
-char tx2b[1];
-char tx3a[1];
-char tx3b[1];
-char tx4a[1];
-char tx4b[1];
-char rx1[3];
-char rx2[3];
-char rx3[3];
-char rx4[3];
-//////////////////////
-int buff_reply;
-
-unsigned char reply2;
-uint32_t time_ms=0,kck_time,LED_Red_Time=1,LED_Green_Time=1,LED_White_Time=1,Buzzer_Time=1;
-uint16_t LED_Red_Speed,LED_Green_Speed,LED_White_Speed,Buzzer_Speed;
-
+int Test_Data[8];
+uint32_t time_ms=0,kck_time,Buzzer_Time=1;
+uint16_t Buzzer_Speed;
+int8_t m_reset_counter = 0;
 int Seg[18] = {Segment_0,Segment_1,Segment_2,Segment_3,Segment_4,Segment_5,Segment_6,Segment_7,Segment_8,Segment_9,
                Segment_10,Segment_11,Segment_12,Segment_13,Segment_14,Segment_15,Segment_Dash};
 unsigned char Buf_Rx_L[_Buffer_Size] ;
 char Buf_Tx_L[_Buffer_Size] ;
 char Address[_Address_Width] = { 0x11, 0x22, 0x33, 0x44, 0x55};//pipe0 {0xE7,0xE7,0xE7,0xE7,0xE7};////
-
-float kp,ki,kd;	
-int8_t m_reset_counter = 0;
-
-inline int PD_CTRL (int Setpoint,int Feed_Back,int *PID_Err_past,int *d_past,float *i);
 struct _Motor_Param
 {
-	int8_t start_times;
+	int8_t restart_times;
 };
-int8_t Motor_turn=0;
-
 typedef	struct _Motor_Param Motor_Param;
 Motor_Param M[4];
+
 int main (void)
 {
     En_RC32M();
@@ -101,16 +69,14 @@ int main (void)
     USARTF1_init();
 	USARTE0_init();
     ADCA_init();
-    LCDInit();
+    //LCDInit();
     //wdt_enable();
 
     // Globally enable interrupts
     sei();
 
-    LED_Green_Time	= 3000;	LED_Green_Speed = 500;
-    LED_Red_Time	= 3000;	LED_Red_Speed	= 100;
-    LED_White_Time	= 1000;	LED_White_Speed = 200;
-    Buzzer_Time		= 2000;	Buzzer_Speed	= 150;
+    Buzzer_Time		= 2000;	
+	Buzzer_Speed	= 150;
 
     Address[0]=Address[0] + RobotID ;
 
@@ -140,7 +106,6 @@ int main (void)
     _delay_us(130);
     ///////////////////////////////////////////////////////////////////////////////////////////////END   NRF Initialize
 
-    // Insert application code here, after the board has been initialized.
     while(1)
     {
         asm("wdr");
@@ -256,6 +221,7 @@ int main (void)
 	
 		//for showing test data through LCD & FT232
 		// this function take time (about 16 ms)
+		//so do not use it unless in test cases
 		//disp_ans();	
 
     }
@@ -318,19 +284,10 @@ char timectrl;
 ISR(TCD0_OVF_vect)
 {
     wdt_reset();
-    timectrl++;
 	wireless_reset++;
-    if (timectrl>=20)
-    {
-		driverTGL++;
-		driverTGL=driverTGL%2;
-        timectrl=0;
-		Test_RPM = false;
-		
-    }
-
-    //timer for 1ms
+    //timer for 1msTest_RPM
     time_ms++;
+	
     if(flg)
     {
         if(kck_time<3000){
@@ -395,9 +352,8 @@ ISR(PORTQ_INT1_vect)
 
 ISR(PORTH_INT1_vect)
 {
-	//LED_White_PORT.OUTTGL=LED_White_PIN_bm;
 	if(menu_time ==0 )
-	{//LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
+	{
 		menu_check_sw((Menu_Set),&Menu_Set_flg);
 		menu_check_sw((Menu_Cancel),&Menu_Cancel_flg);
 	}
@@ -414,16 +370,10 @@ ISR(PORTK_INT0_vect)
 
 void disp_ans(void)
 {
-	//LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
+	char str[40];
 	LCDGotoXY(0,0);
 	//LCDStringRam("salam");
-	sprintf(str,"Hall: %1d",buff_reply);
-	LCDStringRam(str);
-	LCDGotoXY(0,1);
-	sprintf(str,"ENC: %1d",M[0].start_times);
-	LCDStringRam(str);
-	LCDGotoXY(9,1);
-	sprintf(str,"H: %1d",reply2);
+	sprintf(str,"H: %1d",adc);
 	LCDStringRam(str);
 	
 
@@ -529,7 +479,7 @@ ISR(USARTF0_RXC_vect)   ///////////Driver  M.2  &  M.3
 				m_reset_counter++;
 				if ( m_reset_counter == 1 )
 				{
-					M[Robot_D[RobotID].ASK].start_times++;
+					M[Robot_D[RobotID].ASK].restart_times++;
 				}
 					
 			}
@@ -613,7 +563,7 @@ ISR(USARTF1_RXC_vect)   ////////// Driver  M.0  &  M.1
 				m_reset_counter++;
 				if ( m_reset_counter == 1 )
 				{
-					M[Robot_D[RobotID].ASK].start_times++;
+					M[Robot_D[RobotID].ASK].restart_times++;
 				}
 				
 			}
