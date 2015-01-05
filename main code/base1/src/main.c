@@ -32,9 +32,15 @@ void disp_ans(void);
 #define SLAVE4_ADDRESS    3
 
 /* Global variables */
+unsigned char current;
+unsigned char current_ov;
+int curr_alarm=0,curr_alarm0,curr_alarm1,curr_alarm2,curr_alarm3;
+int flg_alarm=0;
+
 int flg=0;
 int flg1=0;
 int adc =0;
+int driverTGL;
 int free_wheel=0;
 int time_memory = 0 ;
 int time_diff = 0 ;
@@ -109,7 +115,21 @@ int main (void)
     while(1)
     {
         asm("wdr");
-
+		
+		curr_alarm0=((PORTH_IN&PIN4_bm)>>4);
+		curr_alarm1=((PORTQ_IN&PIN1_bm)>>1);
+		curr_alarm2=((PORTQ_IN&PIN2_bm)>>2);
+		curr_alarm3=((PORTC_IN&PIN4_bm)>>4);
+		curr_alarm= 0*curr_alarm0 + 1*curr_alarm1 + 2*curr_alarm2 + 3*curr_alarm3 ;
+		
+		current_ov=curr_alarm0 || curr_alarm1 || curr_alarm2 || curr_alarm3;
+		if (curr_alarm0 || curr_alarm1 || curr_alarm2 || curr_alarm3)   /////////  alarm of cuurent ov
+		{
+			Buzzer_PORT.OUTSET = (flg_alarm>>Buzzer_PIN_bp);
+			driverTGL=1;
+		}
+		else
+		driverTGL=0;
 		//sending driver packet///////////////////////////////////////////////////////////////// 
 		//duration for sending all of the packet : 13 ms 
 		//sending every character last about 1 ms
@@ -123,18 +143,29 @@ int main (void)
 		usart_putchar(&USARTF0,Robot_D[RobotID].M2b);//M3.PWM);
 		usart_putchar(&USARTF0,Robot_D[RobotID].M3a);//M3.PWM);
 		usart_putchar(&USARTF0,Robot_D[RobotID].M3b);//M3.PWM);
-		usart_putchar(&USARTF0,Robot_D[RobotID].ASK);	
-			
+		usart_putchar(&USARTF0,Robot_D[RobotID].ASK);
+		
 		if ((Robot_D[RobotID].M0a == 1) 
 		&& (Robot_D[RobotID].M0b == 2) 
 		&& (Robot_D[RobotID].M1a==3) 
-		&& (Robot_D[RobotID].M1b == 4) || free_wheel>100) 
+		&& (Robot_D[RobotID].M1b == 4) || free_wheel>100 || current_ov) 
 		{
-				usart_putchar(&USARTF0,'%');//free wheel order end packet
+				driverTGL=1;
 		}
 		else
 		{
-				usart_putchar(&USARTF0,'^');//end of packet
+				driverTGL=0;
+		}
+		
+		switch (driverTGL)
+		{
+			case 0:
+			usart_putchar(&USARTF0,'^');//end of packet
+			break;
+			
+			case 1:
+			usart_putchar(&USARTF0,'%');//free wheel order end packet
+			break;
 		}
 		//////////////////////////////////////////////////////////////////////////////////////
 			
@@ -280,14 +311,21 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt 
 }
 
 char timectrl;
+long int t_alarm;
 
 ISR(TCD0_OVF_vect)
 {
     wdt_reset();
+	t_alarm++;
 	wireless_reset++;
     //timer for 1msTest_RPM
     time_ms++;
-	
+	if (t_alarm>=500)
+	{
+		flg_alarm = ~(flg_alarm);
+		t_alarm=0;
+		
+	}
     if(flg)
     {
         if(kck_time<3000){
