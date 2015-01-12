@@ -21,8 +21,9 @@
 #include "Menu.h"
 
 
-void send_ask(unsigned char);
-void get_MS(char);
+void NRF_init (void) ;
+void data_transmission (void);
+void driver_packet (void);
 void disp_ans(void);
 
 /*! Defining an example slave address. */
@@ -75,8 +76,9 @@ int main (void)
     USARTF1_init();
 	USARTE0_init();
     ADCA_init();
+	wdt_enable();
+	wdt_set_timeout_period(WDT_TIMEOUT_PERIOD_16CLK);
     //LCDInit();
-    //wdt_enable();
 
     // Globally enable interrupts
     sei();
@@ -86,31 +88,7 @@ int main (void)
 
     Address[0]=Address[0] + RobotID ;
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////Begin NRF Initialize
-    NRF24L01_L_CE_LOW;       //disable transceiver modes
-
-    SPI_Init();
-
-    _delay_us(10);
-    _delay_ms(100);      //power on reset delay needs 100ms
-    NRF24L01_L_Clear_Interrupts();
-    NRF24L01_L_Flush_TX();
-    NRF24L01_L_Flush_RX();
-    NRF24L01_L_CE_LOW;
-    if (RobotID < 3)
-        NRF24L01_L_Init_milad(_TX_MODE, _CH_0, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
-    else if(RobotID > 2 && RobotID < 6)
-        NRF24L01_L_Init_milad(_TX_MODE, _CH_1, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
-	else if (RobotID > 5 && RobotID < 9)
-		NRF24L01_L_Init_milad(_TX_MODE, _CH_2, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
-	else
-		NRF24L01_L_Init_milad(_TX_MODE, _CH_3, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
-    NRF24L01_L_WriteReg(W_REGISTER | DYNPD,0x01);
-    NRF24L01_L_WriteReg(W_REGISTER | FEATURE,0x06);
-
-    NRF24L01_L_CE_HIGH;
-    _delay_us(130);
-    ///////////////////////////////////////////////////////////////////////////////////////////////END   NRF Initialize
+	NRF_init () ;
 
     while(1)
     {
@@ -167,36 +145,13 @@ int main (void)
 			usart_putchar(&USARTF0,'%');//free wheel order end packet
 			break;
 		}
-		//////////////////////////////////////////////////////////////////////////////////////
-			
-		//transmitting data to wireless board/////////////////////////////////////////////////
-		//Test_Data[0] = time_diff;
-			
-		Buf_Tx_L[0]  = (Test_Data[0]>> 8) & 0xFF;	//drive test data
-		Buf_Tx_L[1]  = Test_Data[0] & 0xFF;			//drive test data
-		Buf_Tx_L[2]  = (Test_Data[1]>> 8) & 0xFF;	//drive test data
-		Buf_Tx_L[3]  = Test_Data[1] & 0xFF;			//drive test data
-		Buf_Tx_L[4]  = (Test_Data[2]>> 8) & 0xFF;	//drive test data
-		Buf_Tx_L[5]  = Test_Data[2] & 0xFF;			//drive test data
-		Buf_Tx_L[6]  = (Test_Data[3]>> 8) & 0xFF;	//drive test data
-		Buf_Tx_L[7]  = Test_Data[3] & 0xFF;			//drive test data
-		Buf_Tx_L[8]  = (Test_Data[4]>> 8) & 0xFF;	// unused
-		Buf_Tx_L[9]  = Test_Data[4] & 0xFF;			// unused
-		Buf_Tx_L[10] = (Test_Data[5]>> 8) & 0xFF;	// unused
-		Buf_Tx_L[11] = Test_Data[5] & 0xFF;			// unused
-		Buf_Tx_L[12] = (Test_Data[6]>> 8) & 0xFF;	// unused
-		Buf_Tx_L[13] = Test_Data[6] & 0xFF;			// unused
-		Buf_Tx_L[14] = (Test_Data[7]>> 8) & 0xFF;	// unused
-		Buf_Tx_L[15] = Test_Data[7] & 0xFF;			// unused
-		Buf_Tx_L[16] = adc/12;						//battery voltage
-			
-
-		//LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
-		NRF24L01_L_Write_TX_Buf(Buf_Tx_L, _Buffer_Size);
-		NRF24L01_L_RF_TX();
-		//////////////////////////////////////////////////////////////////////////////////////
-			
-		free_wheel++;// for making wheels free when there is no wireless data
+		
+		data_transmission () ;
+		
+		if (free_wheel > 2000)//2000ms=2s reseting nrf
+		{
+			NRF_init();
+		}
 			
 		//checking battery voltage////////////////////////////////////////////////////////////
         adc = adc_get_unsigned_result(&ADCA,ADC_CH0);
@@ -238,11 +193,6 @@ int main (void)
 		        flg1=1;
 	        }
         }
-		//////////////////////////////////////////////////////////////////////////////////////
-		
-		// Do Not delete this delay for the sake of GOD (needed for nrf)//////////////////////
-		// this delay should execute in while(1) 
-		_delay_us(1);
 		//////////////////////////////////////////////////////////////////////////////////////
 		
 		//calculation of main loop duration///////////////////////////////////////////////////
@@ -318,6 +268,7 @@ ISR(TCD0_OVF_vect)
     wdt_reset();
 	t_alarm++;
 	wireless_reset++;
+	free_wheel++;// for making wheels free when there is no wireless data
     //timer for 1msTest_RPM
     time_ms++;
 	if (t_alarm>=500)
@@ -624,3 +575,59 @@ ISR(USARTE0_RXC_vect)
 	LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
 }
 
+void NRF_init (void)
+{
+	    NRF24L01_L_CE_LOW;       //disable transceiver modes
+
+	    SPI_Init();
+
+	    _delay_us(10);
+	    _delay_ms(11);      //power on reset delay needs 10.3ms//amin changed 100ms to 11ms
+	    NRF24L01_L_Clear_Interrupts();
+	    NRF24L01_L_Flush_TX();
+	    NRF24L01_L_Flush_RX();
+	    NRF24L01_L_CE_LOW;
+	    if (RobotID < 3)
+	    NRF24L01_L_Init_milad(_TX_MODE, _CH_0, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+	    else if(RobotID > 2 && RobotID < 6)
+	    NRF24L01_L_Init_milad(_TX_MODE, _CH_1, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+	    else if (RobotID > 5 && RobotID < 9)
+	    NRF24L01_L_Init_milad(_TX_MODE, _CH_2, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+	    else
+	    NRF24L01_L_Init_milad(_TX_MODE, _CH_3, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+	    NRF24L01_L_WriteReg(W_REGISTER | DYNPD,0x01);
+	    NRF24L01_L_WriteReg(W_REGISTER | FEATURE,0x06);
+
+	    NRF24L01_L_CE_HIGH;
+	    _delay_us(130);
+}
+
+void data_transmission (void)
+{
+		//transmitting data to wireless board/////////////////////////////////////////////////
+		Test_Data[0] = time_diff;
+		
+		Buf_Tx_L[0]  = (Test_Data[0]>> 8) & 0xFF;	//drive test data
+		Buf_Tx_L[1]  = Test_Data[0] & 0xFF;			//drive test data
+		Buf_Tx_L[2]  = (Test_Data[1]>> 8) & 0xFF;	//drive test data
+		Buf_Tx_L[3]  = Test_Data[1] & 0xFF;			//drive test data
+		Buf_Tx_L[4]  = (Test_Data[2]>> 8) & 0xFF;	//drive test data
+		Buf_Tx_L[5]  = Test_Data[2] & 0xFF;			//drive test data
+		Buf_Tx_L[6]  = (Test_Data[3]>> 8) & 0xFF;	//drive test data
+		Buf_Tx_L[7]  = Test_Data[3] & 0xFF;			//drive test data
+		Buf_Tx_L[8]  = (Test_Data[4]>> 8) & 0xFF;	// unused
+		Buf_Tx_L[9]  = Test_Data[4] & 0xFF;			// unused
+		Buf_Tx_L[10] = (Test_Data[5]>> 8) & 0xFF;	// unused
+		Buf_Tx_L[11] = Test_Data[5] & 0xFF;			// unused
+		Buf_Tx_L[12] = (Test_Data[6]>> 8) & 0xFF;	// unused
+		Buf_Tx_L[13] = Test_Data[6] & 0xFF;			// unused
+		Buf_Tx_L[14] = (Test_Data[7]>> 8) & 0xFF;	// unused
+		Buf_Tx_L[15] = Test_Data[7] & 0xFF;			// unused
+		Buf_Tx_L[16] = adc/12;						//battery voltage
+		
+
+		//LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
+		NRF24L01_L_Write_TX_Buf(Buf_Tx_L, _Buffer_Size);
+		NRF24L01_L_RF_TX();
+}
+void driver_packet (void);
