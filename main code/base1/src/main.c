@@ -309,7 +309,7 @@ ISR(TCD0_OVF_vect)
    
 if(flg)
 {
-	if(kck_time<2000)
+	if(kck_time<100)
 	{
 		kck_time++;
 		tc_disable_cc_channels(&TCC0,TC_CCAEN);
