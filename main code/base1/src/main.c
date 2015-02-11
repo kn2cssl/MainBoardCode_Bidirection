@@ -50,8 +50,8 @@ int time_diff = 0;
 int last_check = 0;
 int wireless_reset=0;
 int Test_Data[8];
-int time_tx = 0;
-uint32_t time_ms=0,kck_time,Buzzer_Time=1;
+uint16_t TX_Time = 0;
+uint32_t time_ms=0,kck_time,Buzzer_Time=1,Last_TX_time;
 uint16_t Buzzer_Speed;
 int8_t m_reset_counter = 0;
 int Seg[18] = {Segment_0,Segment_1,Segment_2,Segment_3,Segment_4,Segment_5,Segment_6,Segment_7,Segment_8,Segment_9,
@@ -276,11 +276,16 @@ long int t_alarm;
 
 ISR(TCD0_OVF_vect)
 {
-	time_tx ++;
-	if (time_tx == 2)
+	TX_Time ++;
+	if (TX_Time == 2)
 	{
-		data_transmission () ;
-		time_tx = 0 ;
+		TX_Time = 0 ;
+		if (Last_TX_time + 4 < time_ms)
+		{
+			data_transmission () ;
+			Last_TX_time = time_ms;
+		}
+		
 	}
 
     wdt_reset();
