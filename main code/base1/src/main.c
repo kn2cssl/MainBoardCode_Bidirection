@@ -46,9 +46,11 @@ int adc =0;
 int driverTGL;
 int free_wheel=0;
 int time_memory = 0 ;
-int time_diff = 0 ;
+int time_diff = 0; 
+int last_check = 0;
 int wireless_reset=0;
 int Test_Data[8];
+int time_tx = 0;
 uint32_t time_ms=0,kck_time,Buzzer_Time=1;
 uint16_t Buzzer_Speed;
 int8_t m_reset_counter = 0;
@@ -175,11 +177,14 @@ int main (void)
 			break;
 		}
 		
-		data_transmission () ;
+		//data_transmission () ;
 		
 		if (free_wheel > 2000)//2000ms=2s reseting nrf
 		{
-			NRF_init();
+			//NRF_init();
+			
+			NRF24L01_L_Flush_TX();
+			NRF24L01_L_Flush_RX();
 		}
 			
 		//checking battery voltage////////////////////////////////////////////////////////////
@@ -195,38 +200,6 @@ int main (void)
 			Buzzer_PORT.OUTCLR = Buzzer_PIN_bm;//10.3 volt
 			PORTC.OUTCLR=PIN2_bm;
 		}
-		//////////////////////////////////////////////////////////////////////////////////////
-			
-        //kick & chip order///////////////////////////////////////////////////////////////////
-		//if (KCK_DSH_SW |(Robot_D[RobotID].KCK))
-        //{
-	        //if (KCK_Sens2)
-	        //{
-		        //flg=1;
-				//if (KCK_DSH_SW)
-				//{
-					//Robot_D[RobotID].KCK= KCK_SPEED_HI;
-				//}
-	        //}
-        //}
-		//
-		//if (KCK_DSH_SW)
-		//{
-			//Robot_D[RobotID].KCK= KCK_SPEED_HI;
-		//}
-//
-        //if ((Robot_D[RobotID].CHP))
-        //{
-	        //if (KCK_Sens2)
-	        //{
-		        //flg1=1;
-	        //}
-        //}
-		//////////////////////////////////////////////////////////////////////////////////////
-		
-		//calculation of main loop duration///////////////////////////////////////////////////
-		time_diff = time_ms - time_memory;
-		time_memory = time_ms;
 		//////////////////////////////////////////////////////////////////////////////////////
 	
 		//for showing test data through LCD & FT232
@@ -269,6 +242,15 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt 
             Robot_D[RobotID].D = Buf_Rx_L[14];
 
         }
+		
+				//calculation of main loop duration///////////////////////////////////////////////////
+				if (Buf_Rx_L[5] != last_check)
+				{
+					last_check = Buf_Rx_L[5];
+					time_diff = time_ms - time_memory;
+					time_memory = time_ms;
+				}
+				//////////////////////////////////////////////////////////////////////////////////////
 
 
         //2) clear RX_DR IRQ,
@@ -294,6 +276,13 @@ long int t_alarm;
 
 ISR(TCD0_OVF_vect)
 {
+	time_tx ++;
+	if (time_tx == 2)
+	{
+		data_transmission () ;
+		time_tx = 0 ;
+	}
+
     wdt_reset();
 	t_alarm++;
 	wireless_reset++;
