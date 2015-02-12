@@ -244,9 +244,9 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt 
         }
 		
 				//calculation of main loop duration///////////////////////////////////////////////////
-				if (Buf_Rx_L[5] != last_check)
+				if (Buf_Rx_L[6] != last_check)
 				{
-					last_check = Buf_Rx_L[5];
+					last_check = Buf_Rx_L[6];
 					time_diff = time_ms - time_memory;
 					time_memory = time_ms;
 				}
