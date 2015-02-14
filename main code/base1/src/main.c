@@ -644,7 +644,7 @@ void NRF_init (void)
 	    else
 	    NRF24L01_L_Init_milad(_TX_MODE, _CH_3, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
 	    NRF24L01_L_WriteReg(W_REGISTER | DYNPD,0x01);
-	    NRF24L01_L_WriteReg(W_REGISTER | FEATURE,0x06);
+	    //NRF24L01_L_WriteReg(W_REGISTER | FEATURE,0x06);
 
 	    NRF24L01_L_CE_HIGH;
 	    _delay_us(130);
@@ -654,6 +654,8 @@ void data_transmission (void)
 {
 		//transmitting data to wireless board/////////////////////////////////////////////////
 		Test_Data[0] = time_diff;
+		
+		Test_Data[0] =NRF24L01_L_ReadReg(R_REGISTER | FEATURE);
 		
 		Buf_Tx_L[0]  = (Test_Data[0]>> 8) & 0xFF;	//drive test data
 		Buf_Tx_L[1]  = Test_Data[0] & 0xFF;			//drive test data
@@ -674,8 +676,11 @@ void data_transmission (void)
 		Buf_Tx_L[16] = adc/12;						//battery voltage
 		
 
-		//LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
-		NRF24L01_L_Write_TX_Buf(Buf_Tx_L, _Buffer_Size);
+		
+		
+ 		//NRF24L01_L_Write_TX_Buf(Buf_Tx_L, _Buffer_Size);
+		NRF24L01_L_WriteRegBuf(W_TX_PAYLOAD_NOACK, Buf_Tx_L, _Buffer_Size);
+		LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
 		NRF24L01_L_RF_TX();
 }
 void driver_packet (void);
