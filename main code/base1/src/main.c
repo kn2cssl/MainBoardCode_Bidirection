@@ -21,42 +21,70 @@
 #include "transmitter.h"
 #include "Menu.h"
 #include "gyro.h"
-//#include "string.h"
+
+void NRF_init (void) ;
+void data_transmission (void);
+void disp_ans(void);
 
 #define CPU_SPEED       32000000
 #define BAUDRATE	    100000
 #define TWI_BAUDSETTING TWI_BAUD(CPU_SPEED, BAUDRATE)
-
-void send_ask(unsigned char);
-void get_MS(char);
-void disp_ans(void);
+#define ROBOTRADIUS 0.090
+#define SpeedToRPM 1375.14
+#define precision 10000.0
 
 /*! Defining an example slave address. */
 #define SLAVE1_ADDRESS    0
 #define SLAVE2_ADDRESS    1
 #define SLAVE3_ADDRESS    2
 #define SLAVE4_ADDRESS    3
-#define ROBOTRADIUS 0.090
-#define SpeedToRPM 1375.14
-#define precision 10000.0
 
 /* Global variables */
+unsigned char current;
+unsigned char current_ov;
+int curr_alarm=0,curr_alarm0,curr_alarm1,curr_alarm2,curr_alarm3;
+int flg_alarm=0;
+
 int flg_reply=0;
 int cnt=0;
 int flg=0;
 int flg1=0;
-int adc =0;
+char full_charge=0;
+
+char ctrlflg=0;
 int count=0;
 int gyroi;
-int driverTGL;
-int free_wheel=0;
 int Test_Driver_Data0 , Test_Driver_Data1 , Test_Driver_Data2 , Test_Driver_Data3 ;
 char Test_RPM = true;
 char rx[15];
 char buff[2];
 
+int adc =0;
+int driverTGL;
+int free_wheel=0;
+int time_memory = 0 ;
+int time_diff = 0;
+int last_check = 0;
+int wireless_reset=0;
+int Test_Data[8];
+uint16_t TX_Time = 0;
+uint32_t time_ms=0,kck_time,Buzzer_Time=1,Last_TX_time;
+uint16_t Buzzer_Speed;
+int8_t m_reset_counter = 0;
+int Seg[18] = {Segment_0,Segment_1,Segment_2,Segment_3,Segment_4,Segment_5,Segment_6,Segment_7,Segment_8,Segment_9,
+Segment_10,Segment_11,Segment_12,Segment_13,Segment_14,Segment_15,Segment_Dash};
+unsigned char Buf_Rx_L[_Buffer_Size] ;
+char Buf_Tx_L[_Buffer_Size] ;
+char Address[_Address_Width] = { 0x11, 0x22, 0x33, 0x44, 0x55};//pipe0 {0xE7,0xE7,0xE7,0xE7,0xE7};////
+struct _Motor_Param
+{
+	int8_t restart_times;
+};
+typedef	struct _Motor_Param Motor_Param;
+Motor_Param M[4];
+
 //////////  motor speed variable
-struct Robot 
+struct Robot
 {
 	int dir;
 	int dir_cam;
@@ -70,61 +98,9 @@ signed int motor[4][1];
 
 long aza[10];
 
-
-int flg_off;
-char str[40];
-char tx1a[1];
-char tx1b[1];
-char tx2a[1];
-char tx2b[1];
-char tx3a[1];
-char tx3b[1];
-char tx4a[1];
-char tx4b[1];
-char rx1[3];
-char rx2[3];
-char rx3[3];
-char rx4[3];
-//////////////////////
-int buff_reply;
-unsigned char reply2;
-char buff2;
-int buff_p;
-int buff_i;
-int buff_d;
-int buff_u;
-
-unsigned char reply2;
-uint32_t time_ms=0,kck_time,LED_Red_Time=1,LED_Green_Time=1,LED_White_Time=1,Buzzer_Time=1;
+uint32_t kck_time,LED_Red_Time=1,LED_Green_Time=1,LED_White_Time=1;
 uint16_t LED_Red_Speed,LED_Green_Speed,LED_White_Speed,Buzzer_Speed;
 
-int Seg[18] = {Segment_0,Segment_1,Segment_2,Segment_3,Segment_4,Segment_5,Segment_6,Segment_7,Segment_8,Segment_9,
-               Segment_10,Segment_11,Segment_12,Segment_13,Segment_14,Segment_15,Segment_Dash};
-unsigned char Buf_Rx_L[_Buffer_Size] ;
-char Buf_Tx_L[_Buffer_Size] ;
-char Address[_Address_Width] = { 0x11, 0x22, 0x33, 0x44, 0x55};//pipe0 {0xE7,0xE7,0xE7,0xE7,0xE7};////
-
-float kp,ki,kd;	
-char ctrlflg=0;
-
-
-
-inline int PD_CTRL (int Setpoint,int Feed_Back,int *PID_Err_past,int *d_past,float *i);
-struct _Motor_Param
-{
-    int Encoder;
-	int Hall;
-    int Speed;
-	int HSpeed;
-    int Speed_past;
-	int HSpeed_past;
-    int Err,d,i;
-    int Direction;
-    char PWM;
-	int RPM;
-};
-typedef	struct _Motor_Param Motor_Param;
-Motor_Param M0,M1,M2,M3,MH;
 int main (void)
 {
 	
@@ -152,38 +128,12 @@ int main (void)
     // Globally enable interrupts
     sei();
 
-    LED_Green_Time	= 3000;	LED_Green_Speed = 500;
-    LED_Red_Time	= 3000;	LED_Red_Speed	= 100;
-    LED_White_Time	= 1000;	LED_White_Speed = 200;
-    Buzzer_Time		= 2000;	Buzzer_Speed	= 150;
+    Buzzer_Time		= 2000;
+    Buzzer_Speed	= 150;
 
     Address[0]=Address[0] + RobotID ;
 
-    ///////////////////////////////////////////////////////////////////////////////////////////////Begin NRF Initialize
-    NRF24L01_L_CE_LOW;       //disable transceiver modes
-
-    SPI_Init();
-
-    _delay_us(10);
-    _delay_ms(100);      //power on reset delay needs 100ms
-    NRF24L01_L_Clear_Interrupts();
-    NRF24L01_L_Flush_TX();
-    NRF24L01_L_Flush_RX();
-    NRF24L01_L_CE_LOW;
-    if (RobotID < 3)
-        NRF24L01_L_Init_milad(_TX_MODE, _CH_0, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
-    else if(RobotID > 2 && RobotID < 6)
-        NRF24L01_L_Init_milad(_TX_MODE, _CH_1, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
-	else if (RobotID > 5 && RobotID < 9)
-		NRF24L01_L_Init_milad(_TX_MODE, _CH_2, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
-	else
-		NRF24L01_L_Init_milad(_TX_MODE, _CH_3, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
-    NRF24L01_L_WriteReg(W_REGISTER | DYNPD,0x01);
-    NRF24L01_L_WriteReg(W_REGISTER | FEATURE,0x06);
-
-    NRF24L01_L_CE_HIGH;
-    _delay_us(130);
-    ///////////////////////////////////////////////////////////////////////////////////////////////END   NRF Initialize
+    NRF_init () ;
 	
 	
 	mpu6050_init(); // This Initialization must be after NRF Initialize otherwise nrf wont work!! 
@@ -196,7 +146,8 @@ int main (void)
     // Insert application code here, after the board has been initialized.
     while(1)
     {
-        asm("wdr");
+        
+		asm("wdr");
 		if (gyroi==1)
 		{
 						
@@ -225,54 +176,99 @@ int main (void)
 
 						i=(yaw_rot*2.0226/1000);// Data conversion factor to angle :2.5174/1000
 						gyro_degree=i*0.01745;//pi/180
-						
+						uint8_t count1;
+						char str1[200];
+						count1 = sprintf(str1,"%d \r",(int)i);
+						for (uint8_t i=0;i<count1;i++)
+						{
+							usart_putchar(&USARTE0,str1[i]);
+						}
+						_delay_ms(10);
 						Test_Driver_Data0=yaw_speed;gyro_degree*10000;(int)(i);
 						Test_Driver_Data1=yaw_rot;
 						gyroi=0;
 		}
 
 		
-        if (ctrlflg)
-        {
 
-            disp_ans();
 
-            ctrlflg = 0;
+            //////////////////////SHOOT//////////////////////////////////
+            PORTC_OUTCLR=KCK_SH_PIN_bm;
+            if((KCK_Ch_Limit_PORT.IN & KCK_Ch_Limit_PIN_bm)>>KCK_Ch_Limit_PIN_bp)
+            {
+	            full_charge=1;
+	            tc_disable_cc_channels(&TCC0,TC_CCAEN);
+            }
+            else
+            {
+	            if(flg==0)
+	            {
+		            tc_enable_cc_channels(&TCC0,TC_CCAEN);
+	            }
+            }
+            
+            if (full_charge)
+            {
+	            if (Robot_D[RobotID].KCK )
+	            {
+		            flg = 1;
+	            }
+            }
+            if (KCK_DSH_SW)
+            {
+	            flg = 1;
+            }
+            //////////////////////////////SHOOT END ///////////////////////
+			curr_alarm0=((PORTH_IN&PIN4_bm)>>4);
+            curr_alarm1=((PORTQ_IN&PIN1_bm)>>1);
+            curr_alarm2=((PORTQ_IN&PIN2_bm)>>2);
+            curr_alarm3=((PORTC_IN&PIN4_bm)>>4);
+            curr_alarm= 0*curr_alarm0 + 1*curr_alarm1 + 2*curr_alarm2 + 3*curr_alarm3 ;
+            
+            current_ov=curr_alarm0 || curr_alarm1 || curr_alarm2 || curr_alarm3;
+            if (curr_alarm0 || curr_alarm1 || curr_alarm2 || curr_alarm3)   /////////  alarm of cuurent ov
+            {
+	            Buzzer_PORT.OUTSET = (flg_alarm>>Buzzer_PIN_bp);
+	            driverTGL=1;
+            }
+            else
+            driverTGL=0;
+            
 			
-			This_Robot.L_spead_x = (( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ));
-			This_Robot.L_spead_y = (( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ));
-			This_Robot.R_spead	 = (( ((Robot_D[RobotID].RotationSpeed0<<8) & 0xff00) | (Robot_D[RobotID].RotationSpeed1 & 0x00ff) ));
+			This_Robot.L_spead_x = 0;//(( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ));
+			This_Robot.L_spead_y = 0;//(( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ));
+			This_Robot.R_spead	 = 30;//(( ((Robot_D[RobotID].RotationSpeed0<<8) & 0xff00) | (Robot_D[RobotID].RotationSpeed1 & 0x00ff) ));
 			
 //**************************************************robot dir setting************************************************************//			
-			if (Robot_D[RobotID].ASK == 0) 
-			{
-				if (This_Robot.dir_cam != ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff) )
-				{
-					This_Robot.dir_cam = ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff);
-					yaw_rot=0;
-				}
-				else
-				{
-					This_Robot.dir = gyro_degree*precision + This_Robot.dir_cam;
-				}
-			}
-			
-			if (Robot_D[RobotID].ASK==1)
-			{
-				This_Robot.dir = gyro_degree*precision;	
-			}
-			
-			if (Robot_D[RobotID].ASK == 2)
-			{
-				This_Robot.dir = ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff);
-			}
-			
-			if (Robot_D[RobotID].ASK == 3)
-			{
-				This_Robot.L_spead_x =0;
-				This_Robot.L_spead_y =0;
-				This_Robot.R_spead	 =0;
-			}
+			//if (Robot_D[RobotID].ASK == 0) 
+			//{
+				//if (This_Robot.dir_cam != ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff) )
+				//{
+					//This_Robot.dir_cam = ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff);
+					//yaw_rot=0;
+				//}
+				//else
+				//{
+					//This_Robot.dir = gyro_degree*precision + This_Robot.dir_cam;
+				//}
+			//}
+			//
+			//if (Robot_D[RobotID].ASK==1)
+			//{
+				//This_Robot.dir = gyro_degree*precision;	
+			//}
+			//
+			//if (Robot_D[RobotID].ASK == 2)
+			//{
+				//This_Robot.dir = ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff);
+			//}
+			//
+			//if (Robot_D[RobotID].ASK == 3)
+			//{
+				//This_Robot.L_spead_x =0;
+				//This_Robot.L_spead_y =0;
+				//This_Robot.R_spead	 =0;
+			//}
 //**************************************************robot dir setting************************************************************//			
 			
 			speed[0][0] = -(float)((float)This_Robot.L_spead_x * (float)cos(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)sin(This_Robot.dir/precision))/precision;
@@ -293,11 +289,14 @@ int main (void)
 			rotate[2][2] = -ROBOTRADIUS;
 			rotate[3][2] = -ROBOTRADIUS;
 
-			motor[0][0] = (signed int)(rotate[0][0] * speed[0][0]*SpeedToRPM + rotate[0][1] * speed[1][0]*SpeedToRPM + rotate[0][2] * speed[2][0]*SpeedToRPM);
-			motor[1][0] = (rotate[1][0] * speed[0][0] + rotate[1][1] * speed[1][0] + rotate[1][2] * speed[2][0])*SpeedToRPM;
-			motor[2][0] = (rotate[2][0] * speed[0][0] + rotate[2][1] * speed[1][0] + rotate[2][2] * speed[2][0])*SpeedToRPM;
-			motor[3][0] = (rotate[3][0] * speed[0][0] + rotate[3][1] * speed[1][0] + rotate[3][2] * speed[2][0])*SpeedToRPM;
+			motor[0][0] = 1500;//(signed int)(rotate[0][0] * speed[0][0]*SpeedToRPM + rotate[0][1] * speed[1][0]*SpeedToRPM + rotate[0][2] * speed[2][0]*SpeedToRPM);
+			motor[1][0] = 1500;//(rotate[1][0] * speed[0][0] + rotate[1][1] * speed[1][0] + rotate[1][2] * speed[2][0])*SpeedToRPM;
+			motor[2][0] = 1500;//(rotate[2][0] * speed[0][0] + rotate[2][1] * speed[1][0] + rotate[2][2] * speed[2][0])*SpeedToRPM;
+			motor[3][0] = 1500;//(rotate[3][0] * speed[0][0] + rotate[3][1] * speed[1][0] + rotate[3][2] * speed[2][0])*SpeedToRPM;
 			
+            //sending driver packet/////////////////////////////////////////////////////////////////
+            //duration for sending all of the packet : 13 ms
+            //sending every character last about 1 ms
             usart_putchar(&USARTF0,'*');
             usart_putchar(&USARTF0,'~');
 			usart_putchar(&USARTF0,(motor[0][0] >> 8) & 0x0ff);
@@ -307,83 +306,61 @@ int main (void)
 			usart_putchar(&USARTF0,(motor[2][0] >> 8) & 0x0ff);
 			usart_putchar(&USARTF0,motor[2][0] & 0x0ff);
 			usart_putchar(&USARTF0,(motor[3][0] >> 8) & 0x0ff);
-			usart_putchar(&USARTF0,motor[3][0] & 0x0ff);
-			usart_putchar(&USARTF0,Robot_D[RobotID].P);
-			usart_putchar(&USARTF0,Robot_D[RobotID].I);
-			usart_putchar(&USARTF0,Robot_D[RobotID].D);	
+			usart_putchar(&USARTF0,motor[3][0] & 0x0ff);	
 			usart_putchar(&USARTF0,Robot_D[RobotID].ASK);
 			
-			if ((Robot_D[RobotID].LinearSpeed_x0 == 1) && (Robot_D[RobotID].LinearSpeed_x1 == 2) && (Robot_D[RobotID].LinearSpeed_y0 == 3) && (Robot_D[RobotID].LinearSpeed_y1 == 4) || free_wheel>100) 
+			if ((Robot_D[RobotID].M0a == 1)
+			&& (Robot_D[RobotID].M0b == 2)
+			&& (Robot_D[RobotID].M1a==3)
+			&& (Robot_D[RobotID].M1b == 4) || free_wheel>100 || current_ov)
 			{
-				usart_putchar(&USARTF0,'%');
+				driverTGL=1;
 			}
 			else
 			{
-				usart_putchar(&USARTF0,'^');
+				driverTGL=0;
 			}
 			
-			free_wheel++;
+			switch (driverTGL)
+			{
+				case 0:
+				usart_putchar(&USARTF0,'^');//end of packet
+				break;
+				
+				case 1:
+				usart_putchar(&USARTF0,'%');//free wheel order end packet
+				break;
+			}
 			
-            adc = adc_get_unsigned_result(&ADCA,ADC_CH0);
+			//data_transmission () ;
+			
+			if (free_wheel > 2000)//2000ms=2s reseting nrf
+			{
+				//NRF_init();
+				
+				NRF24L01_L_Flush_TX();
+				NRF24L01_L_Flush_RX();
+			}
+			
+			//checking battery voltage////////////////////////////////////////////////////////////
+			adc = adc_get_unsigned_result(&ADCA,ADC_CH0);
 
-            if (adc<=1240)
-            {
-                Buzzer_PORT.OUTSET = Buzzer_PIN_bm;//10.3 volt
+			if (adc<=1240)
+			{
+				Buzzer_PORT.OUTSET = Buzzer_PIN_bm;//10.3 volt
 				PORTC.OUTSET=PIN2_bm;
-            }
+			}
 			else
 			{
 				Buzzer_PORT.OUTCLR = Buzzer_PIN_bm;//10.3 volt
 				PORTC.OUTCLR=PIN2_bm;
 			}
-
-            if (KCK_DSH_SW| (Robot_D[RobotID].KCK))
-            {
-	            if (KCK_Sens2)
-	            {
-		            flg=1;
-	            }
-            }
-
-            if ((Robot_D[RobotID].CHP))
-            {
-	            if (KCK_Sens2)
-	            {
-		            flg1=1;
-	            }
-            }
+			//////////////////////////////////////////////////////////////////////////////////////
 			
-			//Test_Driver_Data0=This_Robot.L_spead_x;100*speed[0][0];//motor[0][0];//
-			//Test_Driver_Data1=This_Robot.L_spead_y;100*speed[1][0];//motor[1][0];//
-			//Test_Driver_Data2=This_Robot.R_spead;100*speed[3][0];//motor[2][0];//
-			//Test_Driver_Data3=This_Robot.dir;//100*motor[3][0];//
-				
-			Buf_Tx_L[0] = Robot_D[RobotID].M0a;
-			Buf_Tx_L[1] = Robot_D[RobotID].M0b;
-			Buf_Tx_L[2] = Robot_D[RobotID].M1a;
-			Buf_Tx_L[3] = Robot_D[RobotID].M1b;
-			Buf_Tx_L[4] = Robot_D[RobotID].M2a;
-			Buf_Tx_L[5] = Robot_D[RobotID].M2b;
-			Buf_Tx_L[6] = Robot_D[RobotID].M3a;
-			Buf_Tx_L[7] = Robot_D[RobotID].M3b;
-            Buf_Tx_L[8] = Test_Driver_Data0 & 0xFF;
-            Buf_Tx_L[9] = (Test_Driver_Data0 >> 8) & 0xFF;
-            Buf_Tx_L[10] = Test_Driver_Data1 & 0xFF;
-            Buf_Tx_L[11] = (Test_Driver_Data1 >> 8) & 0xFF;
-            Buf_Tx_L[12] = Test_Driver_Data2 & 0xFF;
-            Buf_Tx_L[13] = (Test_Driver_Data2 >> 8) & 0xFF;
-            Buf_Tx_L[14] = Test_Driver_Data3 & 0xFF;
-            Buf_Tx_L[15] = (Test_Driver_Data3 >> 8) & 0xFF;
-            Buf_Tx_L[16] = adc >> 4;
-            
-
-            //LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
-            NRF24L01_L_Write_TX_Buf(Buf_Tx_L, _Buffer_Size);
-            NRF24L01_L_RF_TX();
-        }
-        _delay_us(1);
-        //_delay_ms(100);
-        //LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
+			//for showing test data through LCD & FT232
+			// this function take time (about 16 ms)
+			//so do not use it unless in test cases
+			//disp_ans();
 
     }
 }
@@ -392,135 +369,160 @@ int main (void)
 
 
 ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt Pin
-{   
-    uint8_t status_L = NRF24L01_L_WriteReg(W_REGISTER | STATUSe, _TX_DS|_MAX_RT|_RX_DR);
-    if((status_L & _RX_DR) == _RX_DR)
-    {
-        LED_White_PORT.OUTTGL = LED_White_PIN_bm;
-        //1) read payload through SPI,
-        NRF24L01_L_Read_RX_Buf(Buf_Rx_L, _Buffer_Size);
+{
+	uint8_t status_L = NRF24L01_L_WriteReg(W_REGISTER | STATUSe, _TX_DS|_MAX_RT|_RX_DR);
+	if((status_L & _RX_DR) == _RX_DR)
+	{
+		LED_White_PORT.OUTTGL = LED_White_PIN_bm;
+		wireless_reset=0;
+		//1) read payload through SPI,
+		NRF24L01_L_Read_RX_Buf(Buf_Rx_L, _Buffer_Size);
 		free_wheel=0 ;
-        if(Buf_Rx_L[0] == RobotID)
-        {   
-			cnt=0;
+		if(Buf_Rx_L[0] == RobotID)
+		{
+			Robot_D[RobotID].RID = Buf_Rx_L[0];
+			Robot_D[RobotID].M0a  = Buf_Rx_L[1];
+			Robot_D[RobotID].M0b  = Buf_Rx_L[2];
+			Robot_D[RobotID].M1a  = Buf_Rx_L[3];
+			Robot_D[RobotID].M1b  = Buf_Rx_L[4];
+			Robot_D[RobotID].M2a  = Buf_Rx_L[5];
+			Robot_D[RobotID].M2b  = Buf_Rx_L[6];
+			Robot_D[RobotID].M3a  = Buf_Rx_L[7];
+			Robot_D[RobotID].M3b  = Buf_Rx_L[8];
+			Robot_D[RobotID].KCK = Buf_Rx_L[9];
+			Robot_D[RobotID].CHP = Buf_Rx_L[10];
+			Robot_D[RobotID].ASK = Buf_Rx_L[11];
+			Robot_D[RobotID].P = Buf_Rx_L[12];
+			Robot_D[RobotID].I = Buf_Rx_L[13];
+			Robot_D[RobotID].D = Buf_Rx_L[14];
 
-            Robot_D[RobotID].RID = Buf_Rx_L[0];
-            //Robot_D[RobotID].M0a  = Buf_Rx_L[1];
-            //Robot_D[RobotID].M0b  = Buf_Rx_L[2];
-            //Robot_D[RobotID].M1a  = Buf_Rx_L[3];
-            //Robot_D[RobotID].M1b  = Buf_Rx_L[4];
-            //Robot_D[RobotID].M2a  = Buf_Rx_L[5];
-            //Robot_D[RobotID].M2b  = Buf_Rx_L[6];
-            //Robot_D[RobotID].M3a  = Buf_Rx_L[7];
-            //Robot_D[RobotID].M3b  = Buf_Rx_L[8];
-			Robot_D[RobotID].LinearSpeed_x0 = Buf_Rx_L[1];
-			Robot_D[RobotID].LinearSpeed_x1 = Buf_Rx_L[2];
-			Robot_D[RobotID].LinearSpeed_y0 = Buf_Rx_L[3];
-			Robot_D[RobotID].LinearSpeed_y1 = Buf_Rx_L[4];
-			Robot_D[RobotID].RotationSpeed0 = Buf_Rx_L[5];
-			Robot_D[RobotID].RotationSpeed1 = Buf_Rx_L[6];
-			Robot_D[RobotID].Cam_dir0		= Buf_Rx_L[7];
-			Robot_D[RobotID].Cam_dir1		= Buf_Rx_L[8];
-			
-            Robot_D[RobotID].KCK = Buf_Rx_L[9];
-            Robot_D[RobotID].CHP = Buf_Rx_L[10];
-            Robot_D[RobotID].ASK = Buf_Rx_L[11];
-            Robot_D[RobotID].P = Buf_Rx_L[12];
-            Robot_D[RobotID].I = Buf_Rx_L[13];
-            Robot_D[RobotID].D = Buf_Rx_L[14];
-
-        }
+		}
+		
+		//calculation of main loop duration///////////////////////////////////////////////////
+		if (Buf_Rx_L[5] != last_check)
+		{
+			last_check = Buf_Rx_L[5];
+			time_diff = time_ms - time_memory;
+			time_memory = time_ms;
+		}
+		//////////////////////////////////////////////////////////////////////////////////////
 
 
-        //2) clear RX_DR IRQ,
-        //NRF24L01_R_WriteReg(W_REGISTER | STATUSe, _RX_DR );
-        //3) read FIFO_STATUS to check if there are more payloads available in RX FIFO,
-        //4) if there are more data in RX FIFO, repeat from step 1).
-    }
-    if((status_L&_TX_DS) == _TX_DS)
-    {   LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
-        //NRF24L01_R_WriteReg(W_REGISTER | STATUSe, _TX_DS);
-    }
-    if ((status_L&_MAX_RT) == _MAX_RT)
-    {
-        LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
-        NRF24L01_L_Flush_TX();
-        //NRF24L01_R_WriteReg(W_REGISTER | STATUSe, _MAX_RT);
-    }
+		//2) clear RX_DR IRQ,
+		//NRF24L01_R_WriteReg(W_REGISTER | STATUSe, _RX_DR );
+		//3) read FIFO_STATUS to check if there are more payloads available in RX FIFO,
+		//4) if there are more data in RX FIFO, repeat from step 1).
+	}
+	if((status_L&_TX_DS) == _TX_DS)
+	{   LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
+		wireless_reset=0;
+		//NRF24L01_R_WriteReg(W_REGISTER | STATUSe, _TX_DS);
+	}
+	if ((status_L&_MAX_RT) == _MAX_RT)
+	{
+		LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
+		NRF24L01_L_Flush_TX();
+		//NRF24L01_R_WriteReg(W_REGISTER | STATUSe, _MAX_RT);
+	}
 }
 
-long timectrl;
+
+char timectrl;
+long int t_alarm;
 
 ISR(TCD0_OVF_vect)
 {
-    wdt_reset();
-    timectrl++;
 	gyroi=1;
-    if (timectrl>=20)
-    {
-        //LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
-        ctrlflg=1;
-		driverTGL++;
-		driverTGL=driverTGL%2;
-        timectrl=0;
-		Test_RPM = false;
+	TX_Time ++;
+	if (TX_Time == 2)
+	{
+		TX_Time = 0 ;
+		if (Last_TX_time + 4 < time_ms)
+		{
+			data_transmission () ;
+			Last_TX_time = time_ms;
+		}
 		
+	}
+
+	wdt_reset();
+	t_alarm++;
+	wireless_reset++;
+	free_wheel++;// for making wheels free when there is no wireless data
+	//timer for 1msTest_RPM
+	time_ms++;
+	if (t_alarm>=500)
+	{
+		flg_alarm = ~(flg_alarm);
+		t_alarm=0;
 		
-    }
+	}
+	
+	if(flg)
+	{
+		if(kck_time<100)
+		{
+			kck_time++;
+			tc_disable_cc_channels(&TCC0,TC_CCAEN);
+			if(((PORTH.IN & PIN6_bm)>>PIN6_bp))
+			tc_disable_cc_channels(&TCC0,TC_CCBEN);
+			else
+			{
+				if(KCK_DSH_SW)
+				{
+					tc_enable_cc_channels(&TCC0,TC_CCBEN);
+					KCK_Speed_DIR(KCK_SPEED_HI);
+					full_charge=0;
+				}
+				else if(full_charge==1)
+				{
+					tc_enable_cc_channels(&TCC0,TC_CCBEN);
+					KCK_Speed_DIR(Robot_D[RobotID].KCK);
+					full_charge=0;
+					// LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
+				}
+			}
+		}
+		
+		else {
+			KCK_Speed_DIR(KCK_SPEED_OFF);//KCK_Charge(KCK_CHARGE_ON);
+			tc_enable_cc_channels(&TCC0,TC_CCAEN);
+			//tc_disable_cc_channels(&TCC0,TC_CCBEN);
+		kck_time=0; flg=0;}
+	}
+	//if(flg1)
+	//{
+	//if(kck_time<100){kck_time++; KCK_Speed_CHIP(KCK_SPEED_HI); KCK_Charge(KCK_CHARGE_OFF);}
+	//else {KCK_Speed_CHIP(KCK_SPEED_OFF);KCK_Charge(KCK_CHARGE_ON); kck_time=0; flg1=0;}
+	//}
 
-    //timer for 1ms
-    time_ms++;
-    if(flg)
-    {
 
-        if(kck_time<3000){
-            kck_time++;KCK_Charge(KCK_CHARGE_OFF); KCK_Speed_DIR(KCK_SPEED_RX);}
-        else {
-            KCK_Speed_DIR(KCK_SPEED_OFF);KCK_Charge(KCK_CHARGE_ON); kck_time=0; flg=0;}
+	if(menu_time == 1)
+	{
+		Menu_Disp(Menu_Disp_OFF);
+		Menu_Display();
+		Menu_Reset();
+		menu_time--;
+	}
+	else if (menu_time>1)
+	{
+		menu_time--;
+		menu_check_status();
 
-    }
-    if(flg1)
-    {
-        if(kck_time<100){kck_time++; KCK_Speed_CHIP(KCK_SPEED_HI); KCK_Charge(KCK_CHARGE_OFF);}
-        else {KCK_Speed_CHIP(KCK_SPEED_OFF);KCK_Charge(KCK_CHARGE_ON); kck_time=0; flg1=0;}
-    }
-
-
-    cnt++;
-    if(cnt>=300)
-    {
-        //tx1[0]=0;
-        //tx2[0]=0;
-        //tx3[0]=0;
-        //tx4[0]=0;
-    }
-
-    if(menu_time == 1)
-    {
-        Menu_Disp(Menu_Disp_OFF);
-        Menu_Display();
-        Menu_Reset();
-        menu_time--;
-    }
-    else if (menu_time>1)
-    {
-        menu_time--;
-        menu_check_status();
-
-        if(menu_time<3000)
-        {
-            Buzzer_Time=menu_time;
-            Buzzer_Speed=200;
-        }
-    }
-    else
-    {
-        Disp_R_PORT.OUT = Seg[RobotID];
-        Disp_L_PORT.OUT = Seg[RobotID];
-        //PORTJ_OUTSET=0xFF;
-        //PORTH_OUTSET=0xFF;
-    }
-};
+		if(menu_time<3000)
+		{
+			Buzzer_Time=menu_time;
+			Buzzer_Speed=200;
+		}
+	}
+	else
+	{
+		Disp_R_PORT.OUT = Seg[RobotID];
+		Disp_L_PORT.OUT = Seg[RobotID];
+		//PORTJ_OUTSET=0xFF;
+		//PORTH_OUTSET=0xFF;
+	}
+}
 
 ISR(PORTF_INT0_vect)
 {
@@ -529,29 +531,24 @@ ISR(PORTF_INT0_vect)
 
 ISR(PORTQ_INT0_vect)
 {
-    M1.Encoder +=(PORTQ_IN&PIN1_bm)?-1:1;
 }
 
 ISR(PORTH_INT0_vect)
 {
-    M0.Encoder +=(PORTH_IN&PIN4_bm)?-1:1;
 }
 
 ISR(PORTC_INT0_vect)
 {
-    M3.Encoder +=(PORTC_IN&PIN4_bm)?-1:1;
 }
 
 ISR(PORTQ_INT1_vect)
 {
-    M2.Encoder +=(PORTQ_IN&PIN2_bm)?-1:1;
 }
 
 ISR(PORTH_INT1_vect)
 {
-	//LED_White_PORT.OUTTGL=LED_White_PIN_bm;
 	if(menu_time ==0 )
-	{//LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
+	{
 		menu_check_sw((Menu_Set),&Menu_Set_flg);
 		menu_check_sw((Menu_Cancel),&Menu_Cancel_flg);
 	}
@@ -569,25 +566,25 @@ ISR(PORTK_INT0_vect)
 void disp_ans(void)
 {
 		//LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
-		LCDGotoXY(0,0);
-		//LCDStringRam("salam");
-		sprintf(str,"Hall: %1d",buff_reply);
-		LCDStringRam(str);
-		LCDGotoXY(0,1);
-		sprintf(str,"ENC: %1d",M3.Speed);
-		LCDStringRam(str);
-		LCDGotoXY(9,1);
-		sprintf(str,"H: %1d",reply2);
-		LCDStringRam(str);
-		
-		uint8_t count1;
-		char str1[200];
-		count1 = sprintf(str1,"%d,%d,%d,%d \r",(int)(This_Robot.L_spead_x),(int)(This_Robot.L_spead_y),(int)(This_Robot.R_spead),(int)(This_Robot.dir));		
-		for (uint8_t i=0;i<count1;i++)
-		{
-			usart_putchar(&USARTE0,str1[i]);
-		}
-		
+		//LCDGotoXY(0,0);
+		////LCDStringRam("salam");
+		//sprintf(str,"Hall: %1d",buff_reply);
+		//LCDStringRam(str);
+		//LCDGotoXY(0,1);
+		//sprintf(str,"ENC: %1d",M3.Speed);
+		//LCDStringRam(str);
+		//LCDGotoXY(9,1);
+		//sprintf(str,"H: %1d",reply2);
+		//LCDStringRam(str);
+		//
+		//uint8_t count1;
+		//char str1[200];
+		//count1 = sprintf(str1,"%d,%d,%d,%d \r",(int)(This_Robot.L_spead_x),(int)(This_Robot.L_spead_y),(int)(This_Robot.R_spead),(int)(This_Robot.dir));		
+		//for (uint8_t i=0;i<count1;i++)
+		//{
+			//usart_putchar(&USARTE0,str1[i]);
+		//}
+		//
 	
 }
 
@@ -616,72 +613,84 @@ int buff_d_temp;
 int buff_u_temp;
 unsigned char reply2_tmp;
 
-ISR(USARTF0_RXC_vect)   ///////////// Driver M.2  &  M.3
+
+ISR(USARTF0_RXC_vect)   ///////////Driver  M.2  &  M.3
 {
 	
 	//char buff_reply [16];
 	unsigned char data;
 	data=USARTF0_DATA;
-   
-	
 
 	switch(ask_cnt0)
 	{
 		case 0:
 		if (data== '*')
 		{
-			
 			ask_cnt0++;
 		}
 		break;
 
 		case 1:
-		F0_buff_tmp0=(data << 8) & 0xff00;
+		F0_buff_tmp0=(data<<8)&0x0ff00;
 		ask_cnt0++;
 		break;
 
 		case 2:
-		F0_buff_tmp0 |= data & 0x00ff;
+		F0_buff_tmp0|=data&0x00ff;
 		ask_cnt0++;
 		break;
-
+		
 		case 3:
-		F0_buff_tmp1 = (data << 8) & 0xff00;
+		F0_buff_tmp1=(data<<8)&0x0ff00;
 		ask_cnt0++;
 		break;
-		
+
 		case 4:
-		F0_buff_tmp1 |= data & 0x00ff;
+		F0_buff_tmp1|=data&0x0ff;
 		ask_cnt0++;
 		break;
-
+		
 		case 5:
-		F0_buff_tmp2 = (data << 8) & 0xff00;
-		ask_cnt0++;
-		break;
-		
-		case 6:
-		F0_buff_tmp2 |= data & 0x00ff;
+		F0_buff_tmp2=(data<<8)&0x0ff00;
 		ask_cnt0++;
 		break;
 
-		case 7:
-		F0_buff_tmp3 = (data << 8) & 0xff00;
+		case 6:
+		F0_buff_tmp2|=data&0x0ff;
 		ask_cnt0++;
 		break;
 		
+		case 7:
+		F0_buff_tmp3=(data<<8)&0x0ff00;
+		ask_cnt0++;
+		break;
+
 		case 8:
-		F0_buff_tmp3 |= data & 0x00ff;
+		F0_buff_tmp3|=data&0x0ff;
 		ask_cnt0++;
 		break;
 
 		case 9:
 		if (data=='#')
 		{
-			Test_Driver_Data0=F0_buff_tmp0;
-			Test_Driver_Data1=F0_buff_tmp1;
-			Test_Driver_Data2=F0_buff_tmp2;
-			Test_Driver_Data3=F0_buff_tmp3;
+			Test_Data[0]=F0_buff_tmp0;
+			Test_Data[1]=F0_buff_tmp1;
+			Test_Data[2]=F0_buff_tmp2;
+			Test_Data[3]=F0_buff_tmp3;
+			
+			if (Test_Data[0]=='1' && Test_Data[1]=='2' && Test_Data[2]=='3' && Test_Data[3]=='4')
+			{
+				m_reset_counter++;
+				if ( m_reset_counter == 1 )
+				{
+					M[Robot_D[RobotID].ASK].restart_times++;
+				}
+				
+			}
+			else
+			{
+				m_reset_counter = 0 ;
+			}
 
 			ask_cnt0=0;
 		}
@@ -690,7 +699,7 @@ ISR(USARTF0_RXC_vect)   ///////////// Driver M.2  &  M.3
 	}
 }
 
-ISR(USARTF1_RXC_vect)   ///////////// Driver M.0  &  M.1
+ISR(USARTF1_RXC_vect)   ////////// Driver  M.0  &  M.1
 {
 	unsigned char data;
 	data=USARTF1_DATA;
@@ -706,55 +715,70 @@ ISR(USARTF1_RXC_vect)   ///////////// Driver M.0  &  M.1
 		break;
 
 		case 1:
-		F1_buff_tmp0=(data << 8) & 0xff00;
-		ask_cnt1++;
-		break;
-
-		case 2:
-		F1_buff_tmp0 |= data & 0x00ff;
-		ask_cnt1++;
-		break;
-
-		case 3:
-		F1_buff_tmp1 = (data << 8) & 0xff00;
+		F1_buff_tmp0 =(data<<8)&0x0ff00;
 		ask_cnt1++;
 		break;
 		
-		case 4:
-		F1_buff_tmp1 |= data & 0x00ff;
+		case 2:
+		F1_buff_tmp0|=data&0x00ff;
+		ask_cnt1++;
+		break;
+		
+		case 3:
+		F1_buff_tmp1=(data<<8)&0x0ff00;
 		ask_cnt1++;
 		break;
 
+		case 4:
+		F1_buff_tmp1|=data&0x00ff;
+		ask_cnt1++;
+		break;
+		
 		case 5:
-		F1_buff_tmp2 = (data << 8) & 0xff00;
+		F1_buff_tmp2=(data<<8)&0x0ff00;
 		ask_cnt1++;
 		break;
 		
 		case 6:
-		F1_buff_tmp2 |= data & 0x00ff;
+		F1_buff_tmp2|=data&0x00ff;
 		ask_cnt1++;
 		break;
 
 		case 7:
-		F1_buff_tmp3 = (data << 8) & 0xff00;
+		F1_buff_tmp3=(data<<8)&0x0ff00;
 		ask_cnt1++;
 		break;
 		
 		case 8:
-		F1_buff_tmp3 |= data & 0x00ff;
+		F1_buff_tmp3|=data&0x00ff;
 		ask_cnt1++;
 		break;
 
 		case 9:
 		if (data=='#')
 		{
-			Test_Driver_Data0=F1_buff_tmp0;
-			Test_Driver_Data1=F1_buff_tmp1;
-			Test_Driver_Data2=F1_buff_tmp2;
-			Test_Driver_Data3=F1_buff_tmp3;
-
+			Test_Data[0]=F1_buff_tmp0;
+			Test_Data[1]=F1_buff_tmp1;
+			Test_Data[2]=F1_buff_tmp2;
+			Test_Data[3]=F1_buff_tmp3;
+			
+			if (Test_Data[0]=='1' && Test_Data[1]=='2' && Test_Data[2]=='3' && Test_Data[3]=='4')
+			{
+				m_reset_counter++;
+				if ( m_reset_counter == 1 )
+				{
+					M[Robot_D[RobotID].ASK].restart_times++;
+				}
+				
+			}
+			else
+			{
+				m_reset_counter = 0 ;
+			}
+			
 			ask_cnt1=0;
 		}
+
 		ask_cnt1=0;
 		break;
 	}
@@ -766,52 +790,64 @@ ISR(USARTE0_RXC_vect)
 	LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
 }
 
+void NRF_init (void)
+{
+	NRF24L01_L_CE_LOW;       //disable transceiver modes
+
+	SPI_Init();
+
+	_delay_us(10);
+	_delay_ms(11);      //power on reset delay needs 10.3ms//amin changed 100ms to 11ms
+	NRF24L01_L_Clear_Interrupts();
+	NRF24L01_L_Flush_TX();
+	NRF24L01_L_Flush_RX();
+	NRF24L01_L_CE_LOW;
+	if (RobotID < 3)
+	NRF24L01_L_Init_milad(_TX_MODE, _CH_0, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+	else if(RobotID > 2 && RobotID < 6)
+	NRF24L01_L_Init_milad(_TX_MODE, _CH_1, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+	else if (RobotID > 5 && RobotID < 9)
+	NRF24L01_L_Init_milad(_TX_MODE, _CH_2, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+	else
+	NRF24L01_L_Init_milad(_TX_MODE, _CH_3, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+	NRF24L01_L_WriteReg(W_REGISTER | DYNPD,0x01);
+	NRF24L01_L_WriteReg(W_REGISTER | FEATURE,0x06);
+
+	NRF24L01_L_CE_HIGH;
+	_delay_us(130);
+}
+
+void data_transmission (void)
+{
+	//transmitting data to wireless board/////////////////////////////////////////////////
+	Test_Data[0] = time_diff;
+	
+	Buf_Tx_L[0]  = (Test_Data[0]>> 8) & 0xFF;	//drive test data
+	Buf_Tx_L[1]  = Test_Data[0] & 0xFF;			//drive test data
+	Buf_Tx_L[2]  = (Test_Data[1]>> 8) & 0xFF;	//drive test data
+	Buf_Tx_L[3]  = Test_Data[1] & 0xFF;			//drive test data
+	Buf_Tx_L[4]  = (Test_Data[2]>> 8) & 0xFF;	//drive test data
+	Buf_Tx_L[5]  = Test_Data[2] & 0xFF;			//drive test data
+	Buf_Tx_L[6]  = (Test_Data[3]>> 8) & 0xFF;	//drive test data
+	Buf_Tx_L[7]  = Test_Data[3] & 0xFF;			//drive test data
+	Buf_Tx_L[8]  = (Test_Data[4]>> 8) & 0xFF;	// unused
+	Buf_Tx_L[9]  = Test_Data[4] & 0xFF;			// unused
+	Buf_Tx_L[10] = (Test_Data[5]>> 8) & 0xFF;	// unused
+	Buf_Tx_L[11] = Test_Data[5] & 0xFF;			// unused
+	Buf_Tx_L[12] = (Test_Data[6]>> 8) & 0xFF;	// unused
+	Buf_Tx_L[13] = Test_Data[6] & 0xFF;			// unused
+	Buf_Tx_L[14] = (Test_Data[7]>> 8) & 0xFF;	// unused
+	Buf_Tx_L[15] = Test_Data[7] & 0xFF;			// unused
+	Buf_Tx_L[16] = adc/12;						//battery voltage
+	
+
+	//LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
+	NRF24L01_L_Write_TX_Buf(Buf_Tx_L, _Buffer_Size);
+	NRF24L01_L_RF_TX();
+}
+
 /*! TWIF Master Interrupt vector. */
 ISR(TWID_TWIM_vect)
 {
 	TWI_MasterInterruptHandler(&twiMaster);
-}
-
-inline int PD_CTRL (int Setpoint,int Feed_Back,int *PID_Err_past,int *d_past,float *i)
-{
-
-	//Setpoint=(40*Setpoint);
-	
-
-	int PID_Err=Setpoint-Feed_Back;
-
-	
-	int d=(PID_Err-(*PID_Err_past))*10 ;
-	// d= (*d_past) +0.05*(d-(*d_past));
-
-	d=(abs(d)<50)?0:d;
-
-	d=(d>2400)?(0):d;
-	d=(d<-2400)?(0):d;
-
-	int p=PID_Err*kp;
-
-
-	(*i)=(*i)+(ki*PID_Err)*.020;
-
-
-	if ((*i)>80)
-	(*i)=80;
-	if ((*i)<-80)
-	(*i)=-80;
-
-	p=(p>127)?(127):p;
-	p=(p<-127)?(-127):p;
-
-	//PID_U_past=PID_U;
-	int PID_U=p+(*i)+kd*d;//(0.5)*PID_Err2_M1+(1.5)*(PID_Err1_M1+PID_Err2_M1);//+(12.5)*(float)(PID_Err2_M1-PID_Err1_M1)/10.0; //kp=0.5  kd=9
-
-	if(PID_U>127)
-	PID_U=127;
-	if( PID_U<-127)
-	PID_U=-127;
-	*PID_Err_past=PID_Err;
-	*d_past=d;
-	return PID_U;
-	// direction =1;
 }

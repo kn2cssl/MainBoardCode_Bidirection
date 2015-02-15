@@ -27,8 +27,8 @@ void En_RC32M(void)
 void PORT_init(void)
 {
 	
-	PORTB_DIRSET = KCK_Charge_PIN_bm;
-	PORTC_DIRSET = KCK_Chip_PIN_bm | KCK_DIR_PIN_bm | Buzzer_PIN_bm | PIN2_bm;
+	//PORTB_DIRSET = KCK_Charge_PIN_bm;
+	PORTC_DIRSET = KCK_SH_PIN_bm | KCK_DIR_PIN_bm | Buzzer_PIN_bm | PIN2_bm;
 	
 	//PORTC_PIN3CTRL=PORT_ISC_BOTHEDGES_gc;			**encoder int deactivated**
 	//PORTC_INTCTRL = PORT_INT0LVL_LO_gc;
