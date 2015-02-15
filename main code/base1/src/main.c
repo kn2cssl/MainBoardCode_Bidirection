@@ -223,27 +223,21 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt 
         //1) read payload through SPI,
         NRF24L01_L_Read_RX_Buf(Buf_Rx_L, _Buffer_Size);
 		free_wheel=0 ;
-        if(Buf_Rx_L[0] == RobotID)
+        if(Buf_Rx_L[0] == 'L')//RobotID)
         {   
+			LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
             Robot_D[RobotID].RID  = Buf_Rx_L[0];
-            Robot_D[RobotID].M0a  = Buf_Rx_L[1];
-            Robot_D[RobotID].M0b  = Buf_Rx_L[2];
-			if (Robot_D[RobotID].M0b == 2)
-			{
-				LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
-			}
-            Robot_D[RobotID].M1a  = Buf_Rx_L[3];
-            Robot_D[RobotID].M1b  = Buf_Rx_L[4];
-            Robot_D[RobotID].M2a  = Buf_Rx_L[5];
-            Robot_D[RobotID].M2b  = Buf_Rx_L[6];
-            Robot_D[RobotID].M3a  = Buf_Rx_L[7];
-            Robot_D[RobotID].M3b  = Buf_Rx_L[8];
-            Robot_D[RobotID].KCK = Buf_Rx_L[9];
-            Robot_D[RobotID].CHP = Buf_Rx_L[10];
-            Robot_D[RobotID].ASK = Buf_Rx_L[11];
-            Robot_D[RobotID].P = Buf_Rx_L[12];
-            Robot_D[RobotID].I = Buf_Rx_L[13];
-            Robot_D[RobotID].D = Buf_Rx_L[14];
+            Robot_D[RobotID].M0a  = Buf_Rx_L[1+ RobotID * 10];
+            Robot_D[RobotID].M0b  = Buf_Rx_L[2+ RobotID * 10];
+            Robot_D[RobotID].M1a  = Buf_Rx_L[3+ RobotID * 10];
+            Robot_D[RobotID].M1b  = Buf_Rx_L[4+ RobotID * 10];
+            Robot_D[RobotID].M2a  = Buf_Rx_L[5+ RobotID * 10];
+            Robot_D[RobotID].M2b  = Buf_Rx_L[6+ RobotID * 10];
+            Robot_D[RobotID].M3a  = Buf_Rx_L[7+ RobotID * 10];
+            Robot_D[RobotID].M3b  = Buf_Rx_L[8+ RobotID * 10];
+            Robot_D[RobotID].KCK  = Buf_Rx_L[9+ RobotID * 10];
+            Robot_D[RobotID].CHP  = Buf_Rx_L[10+ RobotID * 10];
+ //           Robot_D[RobotID].ASK = Buf_Rx_L[11];
 
         }
 		
