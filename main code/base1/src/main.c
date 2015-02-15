@@ -90,7 +90,7 @@ int main (void)
     Buzzer_Time		= 2000;	
 	Buzzer_Speed	= 150;
 
-    Address[0]=Address[0] + RobotID ;
+//    Address[0]=Address[0] + RobotID ;
 
 	NRF_init () ;
 
@@ -225,9 +225,13 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt 
 		free_wheel=0 ;
         if(Buf_Rx_L[0] == RobotID)
         {   
-            Robot_D[RobotID].RID = Buf_Rx_L[0];
+            Robot_D[RobotID].RID  = Buf_Rx_L[0];
             Robot_D[RobotID].M0a  = Buf_Rx_L[1];
             Robot_D[RobotID].M0b  = Buf_Rx_L[2];
+			if (Robot_D[RobotID].M0b == 2)
+			{
+				LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
+			}
             Robot_D[RobotID].M1a  = Buf_Rx_L[3];
             Robot_D[RobotID].M1b  = Buf_Rx_L[4];
             Robot_D[RobotID].M2a  = Buf_Rx_L[5];
@@ -282,7 +286,7 @@ ISR(TCD0_OVF_vect)
 		TX_Time = 0 ;
 		if (Last_TX_time + 4 < time_ms)
 		{
-			data_transmission () ;
+			//data_transmission () ;
 			Last_TX_time = time_ms;
 		}
 		
@@ -635,16 +639,17 @@ void NRF_init (void)
 	    NRF24L01_L_Flush_TX();
 	    NRF24L01_L_Flush_RX();
 	    NRF24L01_L_CE_LOW;
-	    if (RobotID < 3)
-	    NRF24L01_L_Init_milad(_TX_MODE, _CH_0, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
-	    else if(RobotID > 2 && RobotID < 6)
-	    NRF24L01_L_Init_milad(_TX_MODE, _CH_1, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
-	    else if (RobotID > 5 && RobotID < 9)
-	    NRF24L01_L_Init_milad(_TX_MODE, _CH_2, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
-	    else
-	    NRF24L01_L_Init_milad(_TX_MODE, _CH_3, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
-	    NRF24L01_L_WriteReg(W_REGISTER | DYNPD,0x01);
-	    //NRF24L01_L_WriteReg(W_REGISTER | FEATURE,0x06);
+// 	    if (RobotID < 3)
+// 	    NRF24L01_L_Init_milad(_TX_MODE, _CH_0, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+// 	    else if(RobotID > 2 && RobotID < 6)
+// 	    NRF24L01_L_Init_milad(_TX_MODE, _CH_1, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+// 	    else if (RobotID > 5 && RobotID < 9)
+// 	    NRF24L01_L_Init_milad(_TX_MODE, _CH_2, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+// 	    else
+// 	    NRF24L01_L_Init_milad(_TX_MODE, _CH_3, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+		NRF24L01_L_Init_milad(_RX_MODE, _CH_1, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+ 	    NRF24L01_L_WriteReg(W_REGISTER | DYNPD,0x01);
+	    NRF24L01_L_WriteReg(W_REGISTER | FEATURE,0x06);
 
 	    NRF24L01_L_CE_HIGH;
 	    _delay_us(130);
@@ -654,8 +659,6 @@ void data_transmission (void)
 {
 		//transmitting data to wireless board/////////////////////////////////////////////////
 		Test_Data[0] = time_diff;
-		
-		Test_Data[0] =NRF24L01_L_ReadReg(R_REGISTER | FEATURE);
 		
 		Buf_Tx_L[0]  = (Test_Data[0]>> 8) & 0xFF;	//drive test data
 		Buf_Tx_L[1]  = Test_Data[0] & 0xFF;			//drive test data
@@ -676,11 +679,8 @@ void data_transmission (void)
 		Buf_Tx_L[16] = adc/12;						//battery voltage
 		
 
-		
-		
- 		//NRF24L01_L_Write_TX_Buf(Buf_Tx_L, _Buffer_Size);
-		NRF24L01_L_WriteRegBuf(W_TX_PAYLOAD_NOACK, Buf_Tx_L, _Buffer_Size);
-		LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
+		//LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
+		NRF24L01_L_Write_TX_Buf(Buf_Tx_L, _Buffer_Size);
 		NRF24L01_L_RF_TX();
 }
 void driver_packet (void);
