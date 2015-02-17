@@ -50,6 +50,9 @@ int time_diff = 0;
 int last_check = 0;
 int wireless_reset=0;
 int Test_Data[8];
+int Robot_Order,Robot_Order_Last;
+int Robot_Select,Robot_Select_Last;
+int Robot_Motor,Robot_Motor_last;
 uint16_t TX_Time = 0;
 uint32_t time_ms=0,kck_time,Buzzer_Time=1,Last_TX_time;
 uint16_t Buzzer_Speed;
@@ -58,7 +61,7 @@ int Seg[18] = {Segment_0,Segment_1,Segment_2,Segment_3,Segment_4,Segment_5,Segme
                Segment_10,Segment_11,Segment_12,Segment_13,Segment_14,Segment_15,Segment_Dash};
 unsigned char Buf_Rx_L[_Buffer_Size] ;
 char Buf_Tx_L[_Buffer_Size] ;
-char Address[_Address_Width] = { 0x11, 0x22, 0x33, 0x44, 0x55};//pipe0 {0xE7,0xE7,0xE7,0xE7,0xE7};////
+char Address[_Address_Width] = { 0x11, 0x22, 0x33, 0x44, 0x55};
 struct _Motor_Param
 {
 	int8_t restart_times;
@@ -139,6 +142,8 @@ int main (void)
 		}
 		else
 		driverTGL=0;
+		////////////////////////////////////////////////////////////////////////////////////////
+		
 		//sending driver packet///////////////////////////////////////////////////////////////// 
 		//duration for sending all of the packet : 13 ms 
 		//sending every character last about 1 ms
@@ -152,12 +157,12 @@ int main (void)
 		usart_putchar(&USARTF0,Robot_D[RobotID].M2b);//M3.PWM);
 		usart_putchar(&USARTF0,Robot_D[RobotID].M3a);//M3.PWM);
 		usart_putchar(&USARTF0,Robot_D[RobotID].M3b);//M3.PWM);
-		usart_putchar(&USARTF0,Robot_D[RobotID].ASK);
+		usart_putchar(&USARTF0,Robot_D[RobotID].ASK) ;
 		
 		if ((Robot_D[RobotID].M0a == 1) 
-		&& (Robot_D[RobotID].M0b == 2) 
-		&& (Robot_D[RobotID].M1a==3) 
-		&& (Robot_D[RobotID].M1b == 4) || free_wheel>100 || current_ov) 
+		&&  (Robot_D[RobotID].M0b == 2) 
+		&&  (Robot_D[RobotID].M1a == 3) 
+		&&  (Robot_D[RobotID].M1b == 4) || free_wheel>100 || current_ov) 
 		{
 				driverTGL=1;
 		}
@@ -179,13 +184,13 @@ int main (void)
 		
 		//data_transmission () ;
 		
-		if (free_wheel > 2000)//2000ms=2s reseting nrf
-		{
-			//NRF_init();
-			
-			NRF24L01_L_Flush_TX();
-			NRF24L01_L_Flush_RX();
-		}
+// 		if (Bi_Direction == )
+// 		{
+// 			//NRF_init();
+// 			
+// 			NRF24L01_L_Flush_TX();
+// 			NRF24L01_L_Flush_RX();
+// 		}
 			
 		//checking battery voltage////////////////////////////////////////////////////////////
         adc = adc_get_unsigned_result(&ADCA,ADC_CH0);
@@ -213,8 +218,10 @@ int main (void)
 
 
 
-ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt Pin
-{   
+ISR(PORTE_INT0_vect)////////////////////////////////////////PRX
+{  
+	
+
     uint8_t status_L = NRF24L01_L_WriteReg(W_REGISTER | STATUSe, _TX_DS|_MAX_RT|_RX_DR);
     if((status_L & _RX_DR) == _RX_DR)
     {
@@ -236,8 +243,29 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt 
             Robot_D[RobotID].M3a  = Buf_Rx_L[7+ RobotID * 10];
             Robot_D[RobotID].M3b  = Buf_Rx_L[8+ RobotID * 10];
             Robot_D[RobotID].KCK  = Buf_Rx_L[9+ RobotID * 10];
-            Robot_D[RobotID].CHP  = Buf_Rx_L[10+ RobotID * 10];
- //           Robot_D[RobotID].ASK = Buf_Rx_L[11];
+            Robot_D[RobotID].CHP  = Buf_Rx_L[10+RobotID * 10];
+            Robot_D[RobotID].ASK  = Buf_Rx_L[31];//0b00000000
+			
+			if (Robot_D[RobotID].ASK != Robot_Select)			
+			{
+				Robot_Select = Robot_D[RobotID].ASK;
+				if (Robot_Select == RobotID)
+				{
+					NRF24L01_L_WriteReg(W_REGISTER | EN_AA, 0x01);
+					LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
+				}
+				else
+				{
+					NRF24L01_L_WriteReg(W_REGISTER | EN_AA, 0x00);
+				}
+				
+				
+ 			}
+			
+			if (Robot_D[RobotID].ASK == RobotID)
+			{
+				data_transmission();
+			}
 
         }
 		
@@ -257,15 +285,14 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt 
         //4) if there are more data in RX FIFO, repeat from step 1).
     }
     if((status_L&_TX_DS) == _TX_DS)
-    {   LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
+    {
+		LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
 		wireless_reset=0;
-        //NRF24L01_R_WriteReg(W_REGISTER | STATUSe, _TX_DS);
     }
+	
     if ((status_L&_MAX_RT) == _MAX_RT)
     {
-        LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
         NRF24L01_L_Flush_TX();
-        //NRF24L01_R_WriteReg(W_REGISTER | STATUSe, _MAX_RT);
     }
 }
 
@@ -653,6 +680,7 @@ void data_transmission (void)
 {
 		//transmitting data to wireless board/////////////////////////////////////////////////
 		Test_Data[0] = time_diff;
+		Test_Data[1] = time_ms;
 		
 		Buf_Tx_L[0]  = (Test_Data[0]>> 8) & 0xFF;	//drive test data
 		Buf_Tx_L[1]  = Test_Data[0] & 0xFF;			//drive test data
@@ -675,6 +703,6 @@ void data_transmission (void)
 
 		//LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
 		NRF24L01_L_Write_TX_Buf(Buf_Tx_L, _Buffer_Size);
-		NRF24L01_L_RF_TX();
+		//NRF24L01_L_RF_TX();
 }
 void driver_packet (void);
