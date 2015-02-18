@@ -157,7 +157,7 @@ int main (void)
 		usart_putchar(&USARTF0,Robot_D[RobotID].M2b);//M3.PWM);
 		usart_putchar(&USARTF0,Robot_D[RobotID].M3a);//M3.PWM);
 		usart_putchar(&USARTF0,Robot_D[RobotID].M3b);//M3.PWM);
-		usart_putchar(&USARTF0,Robot_D[RobotID].ASK) ;
+		usart_putchar(&USARTF0,0);//Robot_D[RobotID].ASK) ;
 		
 		if ((Robot_D[RobotID].M0a == 1) 
 		&&  (Robot_D[RobotID].M0b == 2) 
@@ -234,16 +234,16 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PRX
         {   
 			LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
             Robot_D[RobotID].RID  = Buf_Rx_L[0];
-            Robot_D[RobotID].M0a  = Buf_Rx_L[1+ RobotID * 10];
-            Robot_D[RobotID].M0b  = Buf_Rx_L[2+ RobotID * 10];
-            Robot_D[RobotID].M1a  = Buf_Rx_L[3+ RobotID * 10];
-            Robot_D[RobotID].M1b  = Buf_Rx_L[4+ RobotID * 10];
-            Robot_D[RobotID].M2a  = Buf_Rx_L[5+ RobotID * 10];
-            Robot_D[RobotID].M2b  = Buf_Rx_L[6+ RobotID * 10];
-            Robot_D[RobotID].M3a  = Buf_Rx_L[7+ RobotID * 10];
-            Robot_D[RobotID].M3b  = Buf_Rx_L[8+ RobotID * 10];
-            Robot_D[RobotID].KCK  = Buf_Rx_L[9+ RobotID * 10];
-            Robot_D[RobotID].CHP  = Buf_Rx_L[10+RobotID * 10];
+            Robot_D[RobotID].M0a  = Buf_Rx_L[1+ RobotID%3 * 10];
+            Robot_D[RobotID].M0b  = Buf_Rx_L[2+ RobotID%3 * 10];
+            Robot_D[RobotID].M1a  = Buf_Rx_L[3+ RobotID%3 * 10];
+            Robot_D[RobotID].M1b  = Buf_Rx_L[4+ RobotID%3 * 10];
+            Robot_D[RobotID].M2a  = Buf_Rx_L[5+ RobotID%3 * 10];
+            Robot_D[RobotID].M2b  = Buf_Rx_L[6+ RobotID%3 * 10];
+            Robot_D[RobotID].M3a  = Buf_Rx_L[7+ RobotID%3 * 10];
+            Robot_D[RobotID].M3b  = Buf_Rx_L[8+ RobotID%3 * 10];
+            Robot_D[RobotID].KCK  = Buf_Rx_L[9+ RobotID%3 * 10];
+            Robot_D[RobotID].CHP  = Buf_Rx_L[10+RobotID%3 * 10];
             Robot_D[RobotID].ASK  = Buf_Rx_L[31];//0b00000000
 			
 			if (Robot_D[RobotID].ASK != Robot_Select)			
@@ -252,7 +252,7 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PRX
 				if (Robot_Select == RobotID)
 				{
 					NRF24L01_L_WriteReg(W_REGISTER | EN_AA, 0x01);
-					LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
+/*					LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;*/
 				}
 				else
 				{
@@ -668,7 +668,10 @@ void NRF_init (void)
 // 	    NRF24L01_L_Init_milad(_TX_MODE, _CH_2, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
 // 	    else
 // 	    NRF24L01_L_Init_milad(_TX_MODE, _CH_3, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+		if (RobotID < 3)
 		NRF24L01_L_Init_milad(_RX_MODE, _CH_1, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+		else if(RobotID > 2 && RobotID < 6)
+		NRF24L01_L_Init_milad(_RX_MODE, _CH_0, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
  	    NRF24L01_L_WriteReg(W_REGISTER | DYNPD,0x01);
 	    NRF24L01_L_WriteReg(W_REGISTER | FEATURE,0x06);
 
@@ -679,8 +682,8 @@ void NRF_init (void)
 void data_transmission (void)
 {
 		//transmitting data to wireless board/////////////////////////////////////////////////
-		Test_Data[0] = time_diff;
-		Test_Data[1] = time_ms;
+// 		Test_Data[0] = time_diff;
+// 		Test_Data[1] = time_ms;
 		
 		Buf_Tx_L[0]  = (Test_Data[0]>> 8) & 0xFF;	//drive test data
 		Buf_Tx_L[1]  = Test_Data[0] & 0xFF;			//drive test data
@@ -692,7 +695,7 @@ void data_transmission (void)
 		Buf_Tx_L[7]  = Test_Data[3] & 0xFF;			//drive test data
 		Buf_Tx_L[8]  = (Test_Data[4]>> 8) & 0xFF;	// unused
 		Buf_Tx_L[9]  = Test_Data[4] & 0xFF;			// unused
-		Buf_Tx_L[10] = (Test_Data[5]>> 8) & 0xFF;	// unused
+		Buf_Tx_L[10] = (Test_Data[5]>> 8) & 0xFF;// unused
 		Buf_Tx_L[11] = Test_Data[5] & 0xFF;			// unused
 		Buf_Tx_L[12] = (Test_Data[6]>> 8) & 0xFF;	// unused
 		Buf_Tx_L[13] = Test_Data[6] & 0xFF;			// unused
