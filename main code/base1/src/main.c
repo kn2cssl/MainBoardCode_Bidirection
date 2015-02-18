@@ -25,6 +25,7 @@
 void NRF_init (void) ;
 void data_transmission (void);
 void disp_ans(void);
+void Angl_ctrl(int);
 
 #define CPU_SPEED       32000000
 #define BAUDRATE	    100000
@@ -44,6 +45,10 @@ unsigned char current;
 unsigned char current_ov;
 int curr_alarm=0,curr_alarm0,curr_alarm1,curr_alarm2,curr_alarm3;
 int flg_alarm=0;
+uint16_t t_1ms=0;
+float gyro_degree=0;
+float kp_gyro=0,ki_gyro=0,kd_gyro=0;
+float Angl_setpoint,Angl_Err;
 
 int flg_reply=0;
 int cnt=0;
@@ -71,6 +76,9 @@ uint16_t TX_Time = 0;
 uint32_t time_ms=0,kck_time,Buzzer_Time=1,Last_TX_time;
 uint16_t Buzzer_Speed;
 int8_t m_reset_counter = 0;
+
+
+
 int Seg[18] = {Segment_0,Segment_1,Segment_2,Segment_3,Segment_4,Segment_5,Segment_6,Segment_7,Segment_8,Segment_9,
 Segment_10,Segment_11,Segment_12,Segment_13,Segment_14,Segment_15,Segment_Dash};
 unsigned char Buf_Rx_L[_Buffer_Size] ;
@@ -141,12 +149,13 @@ int main (void)
  	long int yaw_speed=0,yaw_rot=0;
  	float i=0;
     int c=0;
- 	float gyro_degree=0;
+ 	float ang_setpoint=0;
 	int icounter=0;
+    gyro_degree=0;
     // Insert application code here, after the board has been initialized.
     while(1)
     {
-        
+        Angl_setpoint=1.5;
 		asm("wdr");
 		if (gyroi==1)
 		{
@@ -176,14 +185,15 @@ int main (void)
 
 						i=(yaw_rot*2.0226/1000);// Data conversion factor to angle :2.5174/1000
 						gyro_degree=i*0.01745;//pi/180
-						uint8_t count1;
-						char str1[200];
-						count1 = sprintf(str1,"%d \r",(int)i);
-						for (uint8_t i=0;i<count1;i++)
-						{
-							usart_putchar(&USARTE0,str1[i]);
-						}
-						_delay_ms(10);
+						
+						//uint8_t count1;
+						//char str1[200];
+						//count1 = sprintf(str1,"%d \r",(int)disp_test);
+						//for (uint8_t i=0;i<count1;i++)
+						//{
+							//usart_putchar(&USARTE0,str1[i]);
+						//}
+
 						Test_Driver_Data0=yaw_speed;gyro_degree*10000;(int)(i);
 						Test_Driver_Data1=yaw_rot;
 						gyroi=0;
@@ -237,8 +247,9 @@ int main (void)
 			
 			This_Robot.L_spead_x = 0;//(( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ));
 			This_Robot.L_spead_y = 0;//(( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ));
-			This_Robot.R_spead	 = 30;//(( ((Robot_D[RobotID].RotationSpeed0<<8) & 0xff00) | (Robot_D[RobotID].RotationSpeed1 & 0x00ff) ));
-			
+			//This_Robot.R_spead	 = (1.500-gyro_degree)*50000.0;//(( ((Robot_D[RobotID].RotationSpeed0<<8) & 0xff00) | (Robot_D[RobotID].RotationSpeed1 & 0x00ff) ));
+			This_Robot.dir = gyro_degree*precision;
+			//This_Robot.R_speed = kp_gyro*(ang_setpoint - gyro_degree)*50000.0 ;
 //**************************************************robot dir setting************************************************************//			
 			//if (Robot_D[RobotID].ASK == 0) 
 			//{
@@ -289,10 +300,10 @@ int main (void)
 			rotate[2][2] = -ROBOTRADIUS;
 			rotate[3][2] = -ROBOTRADIUS;
 
-			motor[0][0] = 1500;//(signed int)(rotate[0][0] * speed[0][0]*SpeedToRPM + rotate[0][1] * speed[1][0]*SpeedToRPM + rotate[0][2] * speed[2][0]*SpeedToRPM);
-			motor[1][0] = 1500;//(rotate[1][0] * speed[0][0] + rotate[1][1] * speed[1][0] + rotate[1][2] * speed[2][0])*SpeedToRPM;
-			motor[2][0] = 1500;//(rotate[2][0] * speed[0][0] + rotate[2][1] * speed[1][0] + rotate[2][2] * speed[2][0])*SpeedToRPM;
-			motor[3][0] = 1500;//(rotate[3][0] * speed[0][0] + rotate[3][1] * speed[1][0] + rotate[3][2] * speed[2][0])*SpeedToRPM;
+			motor[0][0] = (signed int)(rotate[0][0] * speed[0][0]*SpeedToRPM + rotate[0][1] * speed[1][0]*SpeedToRPM + rotate[0][2] * speed[2][0]*SpeedToRPM);
+			motor[1][0] = (rotate[1][0] * speed[0][0] + rotate[1][1] * speed[1][0] + rotate[1][2] * speed[2][0])*SpeedToRPM;
+			motor[2][0] = (rotate[2][0] * speed[0][0] + rotate[2][1] * speed[1][0] + rotate[2][2] * speed[2][0])*SpeedToRPM;
+			motor[3][0] = (rotate[3][0] * speed[0][0] + rotate[3][1] * speed[1][0] + rotate[3][2] * speed[2][0])*SpeedToRPM;
 			
             //sending driver packet/////////////////////////////////////////////////////////////////
             //duration for sending all of the packet : 13 ms
@@ -312,7 +323,7 @@ int main (void)
 			if ((Robot_D[RobotID].M0a == 1)
 			&& (Robot_D[RobotID].M0b == 2)
 			&& (Robot_D[RobotID].M1a==3)
-			&& (Robot_D[RobotID].M1b == 4) || free_wheel>100 || current_ov)
+			&& (Robot_D[RobotID].M1b == 4) ||  current_ov)  //free_wheel>100 ||
 			{
 				driverTGL=1;
 			}
@@ -432,6 +443,12 @@ long int t_alarm;
 
 ISR(TCD0_OVF_vect)
 {
+	t_1ms++;
+	if (t_1ms==10)
+	{
+		t_1ms=0;
+		Angl_ctrl(Angl_setpoint);
+	}
 	gyroi=1;
 	TX_Time ++;
 	if (TX_Time == 2)
@@ -850,4 +867,15 @@ void data_transmission (void)
 ISR(TWID_TWIM_vect)
 {
 	TWI_MasterInterruptHandler(&twiMaster);
+}
+void Angl_ctrl(int setpoint)
+{
+	kp_gyro=0;
+	ki_gyro=0;
+	
+	
+	Angl_Err= setpoint - gyro_degree ;
+	This_Robot.R_spead	 = (Angl_Err*kp_gyro)*1000000.0;
+	 
+	
 }
