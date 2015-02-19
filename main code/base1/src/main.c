@@ -184,13 +184,13 @@ int main (void)
 		
 		//data_transmission () ;
 		
-// 		if (Bi_Direction == )
-// 		{
-// 			//NRF_init();
-// 			
+		if (free_wheel == 500 )
+		{
+			NRF_init();
+			
 // 			NRF24L01_L_Flush_TX();
 // 			NRF24L01_L_Flush_RX();
-// 		}
+		}
 			
 		//checking battery voltage////////////////////////////////////////////////////////////
         adc = adc_get_unsigned_result(&ADCA,ADC_CH0);
