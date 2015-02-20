@@ -25,7 +25,8 @@
 void NRF_init (void) ;
 void data_transmission (void);
 void disp_ans(void);
-void Angl_ctrl(int);
+inline int Angl_ctrl(int);
+void T_10ms(void);
 
 #define CPU_SPEED       32000000
 #define BAUDRATE	    100000
@@ -45,10 +46,18 @@ unsigned char current;
 unsigned char current_ov;
 int curr_alarm=0,curr_alarm0,curr_alarm1,curr_alarm2,curr_alarm3;
 int flg_alarm=0;
+int flg_angl=0;
 uint16_t t_1ms=0;
-float gyro_degree=0;
+float degree,degree_last;
+	float gyro_degree=0;
+	long int yaw_speed=0,yaw_rot=0;
+	float i=0;
+	int c=0;
+	float ang_setpoint=0;
+	int icounter=0;
+
 float kp_gyro=0,ki_gyro=0,kd_gyro=0;
-float Angl_setpoint,Angl_Err;
+float Angl_setpoint,Angl_Err,Angl_i,Angl_d,Angl_PID;
 
 int flg_reply=0;
 int cnt=0;
@@ -98,7 +107,8 @@ struct Robot
 	int dir_cam;
 	int L_spead_x;//linear sped x
 	int L_spead_y;//linear sped y
-	int R_spead;  //rotational speed
+	int R_spead; 
+	int R_spead_last; //rotational speed
 }This_Robot;
 
 float rotate[4][3],speed[3][1];
@@ -146,16 +156,16 @@ int main (void)
 	
 	mpu6050_init(); // This Initialization must be after NRF Initialize otherwise nrf wont work!! 
 	
- 	long int yaw_speed=0,yaw_rot=0;
- 	float i=0;
-    int c=0;
- 	float ang_setpoint=0;
-	int icounter=0;
-    gyro_degree=0;
+ 	//long int yaw_speed=0,yaw_rot=0;
+ 	//float i=0;
+    //int c=0;
+ 	//float ang_setpoint=0;
+	//int icounter=0;
+    //gyro_degree=0;
     // Insert application code here, after the board has been initialized.
     while(1)
     {
-        Angl_setpoint=1.5;
+        //Angl_setpoint=1.5;
 		asm("wdr");
 		if (gyroi==1)
 		{
@@ -186,20 +196,20 @@ int main (void)
 						i=(yaw_rot*2.0226/1000);// Data conversion factor to angle :2.5174/1000
 						gyro_degree=i*0.01745;//pi/180
 						
-						//uint8_t count1;
-						//char str1[200];
-						//count1 = sprintf(str1,"%d \r",(int)disp_test);
-						//for (uint8_t i=0;i<count1;i++)
-						//{
-							//usart_putchar(&USARTE0,str1[i]);
-						//}
+						uint8_t count1;
+						char str1[200];
+						count1 = sprintf(str1,"%d  \r",(int)(gyro_degree));
+						for (uint8_t i=0;i<count1;i++)
+						{
+							usart_putchar(&USARTE0,str1[i]);
+						}
 
-						Test_Driver_Data0=yaw_speed;gyro_degree*10000;(int)(i);
-						Test_Driver_Data1=yaw_rot;
+						//Test_Driver_Data0=yaw_speed;gyro_degree*10000;(int)(i);
+						//Test_Driver_Data1=yaw_rot;
 						gyroi=0;
 		}
-
 		
+
 
 
             //////////////////////SHOOT//////////////////////////////////
@@ -248,39 +258,19 @@ int main (void)
 			This_Robot.L_spead_x = 0;//(( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ));
 			This_Robot.L_spead_y = 0;//(( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ));
 			//This_Robot.R_spead	 = (1.500-gyro_degree)*50000.0;//(( ((Robot_D[RobotID].RotationSpeed0<<8) & 0xff00) | (Robot_D[RobotID].RotationSpeed1 & 0x00ff) ));
-			This_Robot.dir = gyro_degree*precision;
+			//This_Robot.dir = gyro_degree*precision;
 			//This_Robot.R_speed = kp_gyro*(ang_setpoint - gyro_degree)*50000.0 ;
+
 //**************************************************robot dir setting************************************************************//			
-			//if (Robot_D[RobotID].ASK == 0) 
+			//if(flg_angl==1)
 			//{
-				//if (This_Robot.dir_cam != ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff) )
-				//{
-					//This_Robot.dir_cam = ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff);
-					//yaw_rot=0;
-				//}
-				//else
-				//{
-					//This_Robot.dir = gyro_degree*precision + This_Robot.dir_cam;
-				//}
-			//}
-			//
-			//if (Robot_D[RobotID].ASK==1)
-			//{
-				//This_Robot.dir = gyro_degree*precision;	
-			//}
-			//
-			//if (Robot_D[RobotID].ASK == 2)
-			//{
-				//This_Robot.dir = ((Robot_D[RobotID].Cam_dir0<<8) & 0xff00) | (Robot_D[RobotID].Cam_dir1 & 0x00ff);
-			//}
-			//
-			//if (Robot_D[RobotID].ASK == 3)
-			//{
-				//This_Robot.L_spead_x =0;
-				//This_Robot.L_spead_y =0;
-				//This_Robot.R_spead	 =0;
-			//}
-//**************************************************robot dir setting************************************************************//			
+				        //Angl_setpoint =1.500;
+				    	//This_Robot.R_spead_last = This_Robot.R_spead ;
+				    	//This_Robot.R_spead = Angl_PID ;
+				        //Angl_d = This_Robot.R_spead - This_Robot.R_spead_last;
+						//
+					//
+					//This_Robot.R_spead = Angl_ctrl(Angl_setpoint);	
 			
 			speed[0][0] = -(float)((float)This_Robot.L_spead_x * (float)cos(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)sin(This_Robot.dir/precision))/precision;
 			speed[1][0] = -(float)(-(float)This_Robot.L_spead_x * (float)sin(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)cos(This_Robot.dir/precision))/precision;
@@ -304,7 +294,7 @@ int main (void)
 			motor[1][0] = (rotate[1][0] * speed[0][0] + rotate[1][1] * speed[1][0] + rotate[1][2] * speed[2][0])*SpeedToRPM;
 			motor[2][0] = (rotate[2][0] * speed[0][0] + rotate[2][1] * speed[1][0] + rotate[2][2] * speed[2][0])*SpeedToRPM;
 			motor[3][0] = (rotate[3][0] * speed[0][0] + rotate[3][1] * speed[1][0] + rotate[3][2] * speed[2][0])*SpeedToRPM;
-			
+			//}
             //sending driver packet/////////////////////////////////////////////////////////////////
             //duration for sending all of the packet : 13 ms
             //sending every character last about 1 ms
@@ -444,12 +434,17 @@ long int t_alarm;
 ISR(TCD0_OVF_vect)
 {
 	t_1ms++;
-	if (t_1ms==10)
+	if (t_1ms>=10)
 	{
+		gyroi=1;
+		//T_10ms();
 		t_1ms=0;
-		Angl_ctrl(Angl_setpoint);
+		//flg_angl=1;
+		//Angl_setpoint =1.5;
+		//This_Robot.R_spead = Angl_ctrl(Angl_setpoint);
+		
 	}
-	gyroi=1;
+	
 	TX_Time ++;
 	if (TX_Time == 2)
 	{
@@ -868,14 +863,61 @@ ISR(TWID_TWIM_vect)
 {
 	TWI_MasterInterruptHandler(&twiMaster);
 }
-void Angl_ctrl(int setpoint)
+inline int Angl_ctrl(int setpoint)
 {
-	kp_gyro=0;
+	kp_gyro=1;
 	ki_gyro=0;
-	
+	kd_gyro=0;
 	
 	Angl_Err= setpoint - gyro_degree ;
-	This_Robot.R_spead	 = (Angl_Err*kp_gyro)*1000000.0;
-	 
+	Angl_i+= setpoint - gyro_degree ;
 	
+	
+	Angl_PID = ((Angl_Err*kp_gyro) + (Angl_d)*kd_gyro + (Angl_i)*ki_gyro)*10000;//1000000.0;
+	
+	//uint8_t count1;
+	//char str1[200];
+	//count1 = sprintf(str1,"%d , %d \r",(int)(Angl_Err),(int)(gyro_degree));
+	//for (uint8_t i=0;i<count1;i++)
+	//{
+		//usart_putchar(&USARTE0,str1[i]);
+	//}
+	return Angl_PID;	
+}
+
+void T_10ms(void)
+{
+		//a=i2c_readReg(MPUREG_WHOAMI);
+		//yaw_speed=read_mpu()+7;
+		//if (abs(yaw_speed)<50)
+		//{
+			//yaw_speed=0;
+		//}
+//
+		//yaw_rot-=yaw_speed;
+		//
+		//if (icounter<6)
+		//{
+			//yaw_rot=0;
+			//icounter++;
+		//}
+		//if (yaw_rot>88935)
+		//{
+			//yaw_rot=-88935;
+		//}
+		//if (yaw_rot<-88935)
+		//{
+			//yaw_rot=88935;
+		//}
+//
+		//i=(yaw_rot*2.0226/1000);// Data conversion factor to angle :2.5174/1000
+		//gyro_degree=i*0.01745;//pi/180
+		//
+		//uint8_t count1;
+		//char str1[200];
+		//count1 = sprintf(str1,"%d \r",(int)(30));
+		//for (uint8_t i=0;i<count1;i++)
+		//{
+			//usart_putchar(&USARTE0,str1[i]);
+		//}
 }
