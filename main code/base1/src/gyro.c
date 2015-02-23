@@ -151,35 +151,35 @@ int  read_mpu(void)
 	accelY=0;
 	accelZ=0;
 	//a=i2c_readReg(117);
-	x_a.byte[1]=i2c_readReg(59);
-	x_a.byte[0]=i2c_readReg(60);
-	
-	y_a.byte[1]=i2c_readReg(61);
-	y_a.byte[0]=i2c_readReg(62);
-	
-	z_a.byte[1]=i2c_readReg(63);
-	z_a.byte[0]=i2c_readReg(64);
-	
-	x_g.byte[1]=i2c_readReg(67);
-	x_g.byte[0]=i2c_readReg(68);
-	
-	y_g.byte[1]=i2c_readReg(69);
-	y_g.byte[0]=i2c_readReg(70);
+	//x_a.byte[1]=i2c_readReg(59);
+	//x_a.byte[0]=i2c_readReg(60);
+	//
+	//y_a.byte[1]=i2c_readReg(61);
+	//y_a.byte[0]=i2c_readReg(62);
+	//
+	//z_a.byte[1]=i2c_readReg(63);
+	//z_a.byte[0]=i2c_readReg(64);
+	//
+	//x_g.byte[1]=i2c_readReg(67);
+	//x_g.byte[0]=i2c_readReg(68);
+	//
+	//y_g.byte[1]=i2c_readReg(69);
+	//y_g.byte[0]=i2c_readReg(70);
 	
 	z_g.byte[1]=i2c_readReg(71);
 	z_g.byte[0]=i2c_readReg(72);
 	
-	gyroX=x_g.real;
-	gyroY=y_g.real;
+	//gyroX=x_g.real;
+	//gyroY=y_g.real;
 	gyroZ=z_g.real;
 	
 	
-	accelX=x_a.real;
-	accelY=y_a.real;
+	//accelX=x_a.real;
+	//accelY=y_a.real;
 	accelZ=z_a.real;
 	 
-	gyroX = (abs(gyroX)> GyroThreshold) ? gyroX  : 0;
-	gyroY = (abs(gyroY)> GyroThreshold) ? gyroY  : 0;
+	//gyroX = (abs(gyroX)> GyroThreshold) ? gyroX  : 0;
+	//gyroY = (abs(gyroY)> GyroThreshold) ? gyroY  : 0;
 	//gyroZ = (abs(gyroZ)> GyroThreshold) ? gyroZ  : 0;
 	
 	
@@ -198,13 +198,13 @@ int  read_mpu(void)
 	//AN_OFFSET[4]=eeprom_read_word(&y_a_d);
 	//AN_OFFSET[5]=eeprom_read_word(&z_a_d);
 	//////////matrix update ////////////////////
-	Gyro_Vector[0]=Gyro_Scaled_X(read_raw_data(0)); //gyro x roll
-	Gyro_Vector[1]=Gyro_Scaled_Y(read_raw_data(1)); //gyro y pitch
+	//Gyro_Vector[0]=Gyro_Scaled_X(read_raw_data(0)); //gyro x roll
+	//Gyro_Vector[1]=Gyro_Scaled_Y(read_raw_data(1)); //gyro y pitch
 	Gyro_Vector[2]=Gyro_Scaled_Z(read_raw_data(2)); //gyro Z yaw
 	
-	Accel_Vector[0]=read_raw_data(3);               // acc x
-	Accel_Vector[1]=read_raw_data(4);               // acc y
-	Accel_Vector[2]=read_raw_data(5);               // acc z
+	//Accel_Vector[0]=read_raw_data(3);               // acc x
+	//Accel_Vector[1]=read_raw_data(4);               // acc y
+	//Accel_Vector[2]=read_raw_data(5);               // acc z
 	
 //	char buff32[32];
 // 	 //sprintf(buff32,"%d,%d,%d,%d,%d,%d\r ",x_a.real,y_a.real,z_a.real,x_g.real,y_g.real,z_g.real);

@@ -47,7 +47,7 @@ unsigned char current_ov;
 int curr_alarm=0,curr_alarm0,curr_alarm1,curr_alarm2,curr_alarm3;
 int flg_alarm=0;
 int flg_angl=0;
-uint16_t t_1ms=0;
+uint16_t t_1ms=0,t_test,disp_test;
 float degree,degree_last;
 	float gyro_degree=0;
 	long int yaw_speed=0,yaw_rot=0;
@@ -107,6 +107,7 @@ Motor_Param M[4];
 //////////  motor speed variable
 struct Robot
 {
+	int angel_setpoint;
 	int dir;
 	int dir_cam;
 	int L_spead_x;//linear sped x
@@ -173,7 +174,7 @@ int main (void)
 		asm("wdr");
 		if (gyroi==1)
 		{
-						
+						disp_test=t_test;
 						//a=i2c_readReg(MPUREG_WHOAMI);
 						yaw_speed=read_mpu()+7;
 						if (abs(yaw_speed)<50)
@@ -197,14 +198,20 @@ int main (void)
 							yaw_rot=88935;
 						}
 
-						i=(yaw_rot*2.0226/1000);// Data conversion factor to angle :2.5174/1000
+						i=(yaw_rot*0.53*2.0226/1000);// Data conversion factor to angle :2.5174/1000
 						gyro_degree=i*0.01745;//pi/180
 						
 
 						gyroi=0;
 		}
 		
-		
+		uint8_t count1;
+		char str1[200];
+		count1 = sprintf(str1,"%d \r",(int)disp_test);
+		for (uint8_t i=0;i<count1;i++)
+		{
+		usart_putchar(&USARTE0,str1[i]);
+		}
 
 
 
@@ -253,6 +260,12 @@ int main (void)
 			
 			This_Robot.L_spead_x = 0;//(( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ));
 			This_Robot.L_spead_y = 0;//(( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ));
+			if (This_Robot.angel_setpoint != (( ((Robot_D[RobotID].M0a<<8) & 0xff00) | (Robot_D[RobotID].M0b & 0x00ff) )))
+			{
+				This_Robot.angel_setpoint = (( ((Robot_D[RobotID].M0a<<8) & 0xff00) | (Robot_D[RobotID].M0b & 0x00ff) ));
+				This_Robot.dir=0;
+			}
+			
 			//This_Robot.R_spead	 = (1.500-gyro_degree)*50000.0;//(( ((Robot_D[RobotID].RotationSpeed0<<8) & 0xff00) | (Robot_D[RobotID].RotationSpeed1 & 0x00ff) ));
 			//This_Robot.dir = gyro_degree*precision;
 			//This_Robot.R_speed = kp_gyro*(ang_setpoint - gyro_degree)*50000.0 ;
@@ -261,7 +274,7 @@ int main (void)
 
 			if(flg_angl==1)
 			{
-				        Angl_setpoint =1.500;
+				        Angl_setpoint =This_Robot.angel_setpoint*0.01745;
 				    	This_Robot.R_spead_last = This_Robot.R_spead ;
 				    	This_Robot.R_spead = Angl_PID ;
 				        Angl_d = This_Robot.R_spead - This_Robot.R_spead_last;
@@ -463,7 +476,7 @@ char timectrl;
 long int t_alarm;
 
 ISR(TCD0_OVF_vect)
-{
+{t_test++;
 	gyroi=1;
 	t_1ms++;
 	if (t_1ms>=20)
