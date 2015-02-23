@@ -160,12 +160,12 @@ int main (void)
 	
 	mpu6050_init(); // This Initialization must be after NRF Initialize otherwise nrf wont work!! 
 	
- 	//long int yaw_speed=0,yaw_rot=0;
- 	//float i=0;
-    //int c=0;
+ 	long int yaw_speed=0,yaw_rot=0;
+ 	float i=0;
+    int c=0;
  	//float ang_setpoint=0;
-	//int icounter=0;
-    //gyro_degree=0;
+	int icounter=0;
+    gyro_degree=0;
     // Insert application code here, after the board has been initialized.
     while(1)
     {
@@ -197,19 +197,9 @@ int main (void)
 							yaw_rot=88935;
 						}
 
-						i=(yaw_rot*0.53*2.0226/1000);// Data conversion factor to angle :2.5174/1000
-						gyro_degree=(i*0.53*0.01745);//pi/180
-						Test_Data[0]=(int)(i);
-						uint8_t count1;
-						char str1[200];
-						count1 = sprintf(str1,"%d  \r",(int)(gyro_degree));
-						for (uint8_t i=0;i<count1;i++)
-						{
-							usart_putchar(&USARTE0,str1[i]);
-						}
+						i=(yaw_rot*2.0226/1000)*0.53;// Data conversion factor to angle :2.5174/1000
+						gyro_degree=i*0.01745;//pi/180
 						
-						//Test_Driver_Data0=yaw_speed;gyro_degree*10000;(int)(i);
-						//Test_Driver_Data1=yaw_rot;
 						gyroi=0;
 		}
 		
@@ -299,8 +289,10 @@ int main (void)
 			motor[1][0] = (rotate[1][0] * speed[0][0] + rotate[1][1] * speed[1][0] + rotate[1][2] * speed[2][0])*SpeedToRPM;
 			motor[2][0] = (rotate[2][0] * speed[0][0] + rotate[2][1] * speed[1][0] + rotate[2][2] * speed[2][0])*SpeedToRPM;
 			motor[3][0] = (rotate[3][0] * speed[0][0] + rotate[3][1] * speed[1][0] + rotate[3][2] * speed[2][0])*SpeedToRPM;
+
 			flg_angl=0;
 			}
+
             //sending driver packet/////////////////////////////////////////////////////////////////
             //duration for sending all of the packet : 13 ms
             //sending every character last about 1 ms
