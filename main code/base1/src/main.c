@@ -49,15 +49,15 @@ int flg_alarm=0;
 int flg_angl=0;
 uint16_t t_1ms=0;
 float degree,degree_last;
-	float gyro_degree=0;
+	float gyro_radian=0;
 	long int yaw_speed=0,yaw_rot=0;
-	float i=0;
+	float gyro_degree=0,gyro_degree_last=0;
 	int c=0;
 	float ang_setpoint=0;
 	int icounter=0;
 
 float kp_gyro=0,ki_gyro=0,kd_gyro=0;
-float Angl_setpoint,Angl_Err,Angl_i,Angl_d,Angl_PID;
+float Angl_setpoint,Angl_Err,Angl_Err_last,Angl_i,Angl_d,Angl_PID;
 
 int flg_reply=0;
 int cnt=0;
@@ -197,11 +197,18 @@ int main (void)
 							yaw_rot=88935;
 						}
 
-						i=(yaw_rot*2.0226/1000);// Data conversion factor to angle :2.5174/1000
-						gyro_degree=i*0.01745;//pi/180
+						gyro_degree=(yaw_rot*2.0226/1000)*0.53;// Data conversion factor to angle :2.5174/1000
+						gyro_radian=gyro_degree*0.01745;//pi/180
 						
-
 						gyroi=0;
+						
+								//uint8_t count1;
+								//char str1[200];
+								//count1 = sprintf(str1,"%d \r",(int)(gyro_degree));
+								//for (uint8_t i=0;i<count1;i++)
+								//{
+								//usart_putchar(&USARTE0,str1[i]);
+								//}
 		}
 		
 		
@@ -259,16 +266,6 @@ int main (void)
 
 //**************************************************robot dir setting************************************************************//			
 
-			if(flg_angl==1)
-			{
-				        Angl_setpoint =1.500;
-				    	This_Robot.R_spead_last = This_Robot.R_spead ;
-				    	This_Robot.R_spead = Angl_PID ;
-				        Angl_d = This_Robot.R_spead - This_Robot.R_spead_last;
-						
-					
-					This_Robot.R_spead = Angl_ctrl(Angl_setpoint);	
-
 			//if(flg_angl==1)
 			//{
 				        //Angl_setpoint =1.500;
@@ -278,34 +275,6 @@ int main (void)
 						//
 					//
 					//This_Robot.R_spead = Angl_ctrl(Angl_setpoint);	
-
-			
-			speed[0][0] = -(float)((float)This_Robot.L_spead_x * (float)cos(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)sin(This_Robot.dir/precision))/precision;
-			speed[1][0] = -(float)(-(float)This_Robot.L_spead_x * (float)sin(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)cos(This_Robot.dir/precision))/precision;
-			speed[2][0] = -(float)(This_Robot.R_spead)/precision;
-
-			rotate[0][0] = 0.832063;//cos( 0.18716 * M_PI);
-			rotate[1][0] = 0.707107;//sin( M_PI / 4.0 );
-			rotate[2][0] = -0.707107;//-cos( M_PI / 4.0 );
-			rotate[3][0] = -0.832063;//-cos( 0.18716 * M_PI);
-			rotate[0][1] = -0.554682;//-sin(0.18716 * M_PI );
-			rotate[1][1] = 0.707107;//cos(M_PI / 4.0 );
-			rotate[2][1] = 0.707107;//sin(M_PI / 4.0);
-			rotate[3][1] = -0.554682;//-sin(0.18716 * M_PI);
-
-			rotate[0][2] = -ROBOTRADIUS;
-			rotate[1][2] = -ROBOTRADIUS;
-			rotate[2][2] = -ROBOTRADIUS;
-			rotate[3][2] = -ROBOTRADIUS;
-
-			motor[0][0] = (signed int)(rotate[0][0] * speed[0][0]*SpeedToRPM + rotate[0][1] * speed[1][0]*SpeedToRPM + rotate[0][2] * speed[2][0]*SpeedToRPM);
-			motor[1][0] = (rotate[1][0] * speed[0][0] + rotate[1][1] * speed[1][0] + rotate[1][2] * speed[2][0])*SpeedToRPM;
-			motor[2][0] = (rotate[2][0] * speed[0][0] + rotate[2][1] * speed[1][0] + rotate[2][2] * speed[2][0])*SpeedToRPM;
-			motor[3][0] = (rotate[3][0] * speed[0][0] + rotate[3][1] * speed[1][0] + rotate[3][2] * speed[2][0])*SpeedToRPM;
-
-
-			flg_angl=0;
-			}
 
 
 
@@ -469,12 +438,45 @@ ISR(TCD0_OVF_vect)
 	if (t_1ms>=20)
 	{
 		
-		//T_10ms();
-		t_1ms=0;
-		flg_angl=1;
-		//Angl_setpoint =1.5;
-		//This_Robot.R_spead = Angl_ctrl(Angl_setpoint);
+		Angl_setpoint =1.500;
+		This_Robot.R_spead_last = This_Robot.R_spead ;
+		This_Robot.R_spead = Angl_PID ;
+		Angl_d = This_Robot.R_spead - This_Robot.R_spead_last;
 		
+		This_Robot.R_spead = Angl_ctrl(Angl_setpoint);
+		
+			speed[0][0] = -(float)((float)This_Robot.L_spead_x * (float)cos(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)sin(This_Robot.dir/precision))/precision;
+			speed[1][0] = -(float)(-(float)This_Robot.L_spead_x * (float)sin(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)cos(This_Robot.dir/precision))/precision;
+			speed[2][0] = -(float)(This_Robot.R_spead)/precision;
+
+			rotate[0][0] = 0.832063;//cos( 0.18716 * M_PI);
+			rotate[1][0] = 0.707107;//sin( M_PI / 4.0 );
+			rotate[2][0] = -0.707107;//-cos( M_PI / 4.0 );
+			rotate[3][0] = -0.832063;//-cos( 0.18716 * M_PI);
+			rotate[0][1] = -0.554682;//-sin(0.18716 * M_PI );
+			rotate[1][1] = 0.707107;//cos(M_PI / 4.0 );
+			rotate[2][1] = 0.707107;//sin(M_PI / 4.0);
+			rotate[3][1] = -0.554682;//-sin(0.18716 * M_PI);
+
+			rotate[0][2] = -ROBOTRADIUS;
+			rotate[1][2] = -ROBOTRADIUS;
+			rotate[2][2] = -ROBOTRADIUS;
+			rotate[3][2] = -ROBOTRADIUS;
+
+			motor[0][0] = (signed int)(rotate[0][0] * speed[0][0]*SpeedToRPM + rotate[0][1] * speed[1][0]*SpeedToRPM + rotate[0][2] * speed[2][0]*SpeedToRPM);
+			motor[1][0] = (rotate[1][0] * speed[0][0] + rotate[1][1] * speed[1][0] + rotate[1][2] * speed[2][0])*SpeedToRPM;
+			motor[2][0] = (rotate[2][0] * speed[0][0] + rotate[2][1] * speed[1][0] + rotate[2][2] * speed[2][0])*SpeedToRPM;
+			motor[3][0] = (rotate[3][0] * speed[0][0] + rotate[3][1] * speed[1][0] + rotate[3][2] * speed[2][0])*SpeedToRPM;
+
+		
+
+		//T_10ms();
+	
+		flg_angl=1;
+		t_1ms=0;	
+			//gyro_degree_last = gyro_degree;
+			//
+			//Angl_d=gyro_degree_last - gyro_degree
 	}
 	
 	TX_Time ++;
@@ -903,14 +905,15 @@ ISR(TWID_TWIM_vect)
 inline int Angl_ctrl(int setpoint)
 {
 	kp_gyro=1;
-	ki_gyro=0;
+	ki_gyro=0.2;
 	kd_gyro=0;
 	
+	Angl_Err_last=Angl_Err;
 	Angl_Err= setpoint - gyro_degree ;
 	Angl_i+= setpoint - gyro_degree ;
 	
 	
-	Angl_PID = ((Angl_Err*kp_gyro) + (Angl_d)*kd_gyro + (Angl_i)*ki_gyro)*10000;//1000000.0;
+	Angl_PID = ((Angl_Err*kp_gyro) + (Angl_d)*kd_gyro + (Angl_i)*ki_gyro)*500;//1000000.0;
 	
 	//uint8_t count1;
 	//char str1[200];
