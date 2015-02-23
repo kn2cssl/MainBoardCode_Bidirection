@@ -81,6 +81,10 @@ int time_diff = 0;
 int last_check = 0;
 int wireless_reset=0;
 int Test_Data[8];
+
+int Robot_Order,Robot_Order_Last;
+int Robot_Select,Robot_Select_Last;
+int Robot_Motor,Robot_Motor_last;
 uint16_t TX_Time = 0;
 uint32_t time_ms=0,kck_time,Buzzer_Time=1,Last_TX_time;
 uint16_t Buzzer_Speed;
@@ -149,7 +153,7 @@ int main (void)
     Buzzer_Time		= 2000;
     Buzzer_Speed	= 150;
 
-    Address[0]=Address[0] + RobotID ;
+   // Address[0]=Address[0] + RobotID ;
 
     NRF_init () ;
 	
@@ -193,9 +197,9 @@ int main (void)
 							yaw_rot=88935;
 						}
 
-						i=(yaw_rot*2.0226/1000);// Data conversion factor to angle :2.5174/1000
-						gyro_degree=i*0.01745;//pi/180
-						
+						i=(yaw_rot*0.53*2.0226/1000);// Data conversion factor to angle :2.5174/1000
+						gyro_degree=(i*0.53*0.01745);//pi/180
+						Test_Data[0]=(int)(i);
 						uint8_t count1;
 						char str1[200];
 						count1 = sprintf(str1,"%d  \r",(int)(gyro_degree));
@@ -203,11 +207,12 @@ int main (void)
 						{
 							usart_putchar(&USARTE0,str1[i]);
 						}
-
+						
 						//Test_Driver_Data0=yaw_speed;gyro_degree*10000;(int)(i);
 						//Test_Driver_Data1=yaw_rot;
 						gyroi=0;
 		}
+		
 		
 
 
@@ -262,15 +267,15 @@ int main (void)
 			//This_Robot.R_speed = kp_gyro*(ang_setpoint - gyro_degree)*50000.0 ;
 
 //**************************************************robot dir setting************************************************************//			
-			//if(flg_angl==1)
-			//{
-				        //Angl_setpoint =1.500;
-				    	//This_Robot.R_spead_last = This_Robot.R_spead ;
-				    	//This_Robot.R_spead = Angl_PID ;
-				        //Angl_d = This_Robot.R_spead - This_Robot.R_spead_last;
-						//
-					//
-					//This_Robot.R_spead = Angl_ctrl(Angl_setpoint);	
+			if(flg_angl==1)
+			{
+				        Angl_setpoint =1.500;
+				    	This_Robot.R_spead_last = This_Robot.R_spead ;
+				    	This_Robot.R_spead = Angl_PID ;
+				        Angl_d = This_Robot.R_spead - This_Robot.R_spead_last;
+						
+					
+					This_Robot.R_spead = Angl_ctrl(Angl_setpoint);	
 			
 			speed[0][0] = -(float)((float)This_Robot.L_spead_x * (float)cos(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)sin(This_Robot.dir/precision))/precision;
 			speed[1][0] = -(float)(-(float)This_Robot.L_spead_x * (float)sin(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)cos(This_Robot.dir/precision))/precision;
@@ -294,7 +299,8 @@ int main (void)
 			motor[1][0] = (rotate[1][0] * speed[0][0] + rotate[1][1] * speed[1][0] + rotate[1][2] * speed[2][0])*SpeedToRPM;
 			motor[2][0] = (rotate[2][0] * speed[0][0] + rotate[2][1] * speed[1][0] + rotate[2][2] * speed[2][0])*SpeedToRPM;
 			motor[3][0] = (rotate[3][0] * speed[0][0] + rotate[3][1] * speed[1][0] + rotate[3][2] * speed[2][0])*SpeedToRPM;
-			//}
+			flg_angl=0;
+			}
             //sending driver packet/////////////////////////////////////////////////////////////////
             //duration for sending all of the packet : 13 ms
             //sending every character last about 1 ms
@@ -308,12 +314,12 @@ int main (void)
 			usart_putchar(&USARTF0,motor[2][0] & 0x0ff);
 			usart_putchar(&USARTF0,(motor[3][0] >> 8) & 0x0ff);
 			usart_putchar(&USARTF0,motor[3][0] & 0x0ff);	
-			usart_putchar(&USARTF0,Robot_D[RobotID].ASK);
+			usart_putchar(&USARTF0,0);//Robot_D[RobotID].ASK);
 			
-			if ((Robot_D[RobotID].M0a == 1)
-			&& (Robot_D[RobotID].M0b == 2)
-			&& (Robot_D[RobotID].M1a==3)
-			&& (Robot_D[RobotID].M1b == 4) ||  current_ov)  //free_wheel>100 ||
+			if(current_ov) //((Robot_D[RobotID].M0a == 1)
+			//&& (Robot_D[RobotID].M0b == 2)
+			//&& (Robot_D[RobotID].M1a==3)
+			//&& (Robot_D[RobotID].M1b == 4) ||  current_ov || free_wheel>100 )
 			{
 				driverTGL=1;
 			}
@@ -333,14 +339,13 @@ int main (void)
 				break;
 			}
 			
-			//data_transmission () ;
 			
-			if (free_wheel > 2000)//2000ms=2s reseting nrf
+			if (free_wheel >= 500)//2000ms=2s reseting nrf
 			{
-				//NRF_init();
+				NRF_init();
 				
-				NRF24L01_L_Flush_TX();
-				NRF24L01_L_Flush_RX();
+				//NRF24L01_L_Flush_TX();
+				//NRF24L01_L_Flush_RX();
 			}
 			
 			//checking battery voltage////////////////////////////////////////////////////////////
@@ -369,7 +374,7 @@ int main (void)
 
 
 
-ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt Pin
+ISR(PORTE_INT0_vect)////////////////////////////////////////PRX
 {
 	uint8_t status_L = NRF24L01_L_WriteReg(W_REGISTER | STATUSe, _TX_DS|_MAX_RT|_RX_DR);
 	if((status_L & _RX_DR) == _RX_DR)
@@ -379,30 +384,49 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt 
 		//1) read payload through SPI,
 		NRF24L01_L_Read_RX_Buf(Buf_Rx_L, _Buffer_Size);
 		free_wheel=0 ;
-		if(Buf_Rx_L[0] == RobotID)
+		if(Buf_Rx_L[0] == 'L')//RobotID)
 		{
-			Robot_D[RobotID].RID = Buf_Rx_L[0];
-			Robot_D[RobotID].M0a  = Buf_Rx_L[1];
-			Robot_D[RobotID].M0b  = Buf_Rx_L[2];
-			Robot_D[RobotID].M1a  = Buf_Rx_L[3];
-			Robot_D[RobotID].M1b  = Buf_Rx_L[4];
-			Robot_D[RobotID].M2a  = Buf_Rx_L[5];
-			Robot_D[RobotID].M2b  = Buf_Rx_L[6];
-			Robot_D[RobotID].M3a  = Buf_Rx_L[7];
-			Robot_D[RobotID].M3b  = Buf_Rx_L[8];
-			Robot_D[RobotID].KCK = Buf_Rx_L[9];
-			Robot_D[RobotID].CHP = Buf_Rx_L[10];
-			Robot_D[RobotID].ASK = Buf_Rx_L[11];
-			Robot_D[RobotID].P = Buf_Rx_L[12];
-			Robot_D[RobotID].I = Buf_Rx_L[13];
-			Robot_D[RobotID].D = Buf_Rx_L[14];
+			LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
+			Robot_D[RobotID].RID  = Buf_Rx_L[0];
+			Robot_D[RobotID].M0a  = Buf_Rx_L[1+ RobotID%3 * 10];
+			Robot_D[RobotID].M0b  = Buf_Rx_L[2+ RobotID%3 * 10];
+			Robot_D[RobotID].M1a  = Buf_Rx_L[3+ RobotID%3 * 10];
+			Robot_D[RobotID].M1b  = Buf_Rx_L[4+ RobotID%3 * 10];
+			Robot_D[RobotID].M2a  = Buf_Rx_L[5+ RobotID%3 * 10];
+			Robot_D[RobotID].M2b  = Buf_Rx_L[6+ RobotID%3 * 10];
+			Robot_D[RobotID].M3a  = Buf_Rx_L[7+ RobotID%3 * 10];
+			Robot_D[RobotID].M3b  = Buf_Rx_L[8+ RobotID%3 * 10];
+			Robot_D[RobotID].KCK  = Buf_Rx_L[9+ RobotID%3 * 10];
+			Robot_D[RobotID].CHP  = Buf_Rx_L[10+RobotID%3 * 10];
+			Robot_D[RobotID].ASK  = Buf_Rx_L[31];//0b00000000
+			
+			if (Robot_D[RobotID].ASK != Robot_Select)
+			{
+				Robot_Select = Robot_D[RobotID].ASK;
+				if (Robot_Select == RobotID)
+				{
+					NRF24L01_L_WriteReg(W_REGISTER | EN_AA, 0x01);
+					/*					LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;*/
+				}
+				else
+				{
+					NRF24L01_L_WriteReg(W_REGISTER | EN_AA, 0x00);
+				}
+				
+				
+			}
+			
+			if (Robot_D[RobotID].ASK == RobotID)
+			{
+				data_transmission();
+			}
 
 		}
 		
 		//calculation of main loop duration///////////////////////////////////////////////////
-		if (Buf_Rx_L[5] != last_check)
+		if (Buf_Rx_L[6] != last_check)
 		{
-			last_check = Buf_Rx_L[5];
+			last_check = Buf_Rx_L[6];
 			time_diff = time_ms - time_memory;
 			time_memory = time_ms;
 		}
@@ -415,15 +439,14 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PTX   IRQ Interrupt 
 		//4) if there are more data in RX FIFO, repeat from step 1).
 	}
 	if((status_L&_TX_DS) == _TX_DS)
-	{   LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
-		wireless_reset=0;
-		//NRF24L01_R_WriteReg(W_REGISTER | STATUSe, _TX_DS);
-	}
-	if ((status_L&_MAX_RT) == _MAX_RT)
 	{
 		LED_Green_PORT.OUTTGL = LED_Green_PIN_bm;
+		wireless_reset=0;
+	}
+	
+	if ((status_L&_MAX_RT) == _MAX_RT)
+	{
 		NRF24L01_L_Flush_TX();
-		//NRF24L01_R_WriteReg(W_REGISTER | STATUSe, _MAX_RT);
 	}
 }
 
@@ -433,13 +456,14 @@ long int t_alarm;
 
 ISR(TCD0_OVF_vect)
 {
+	gyroi=1;
 	t_1ms++;
-	if (t_1ms>=10)
+	if (t_1ms>=20)
 	{
-		gyroi=1;
+		
 		//T_10ms();
 		t_1ms=0;
-		//flg_angl=1;
+		flg_angl=1;
 		//Angl_setpoint =1.5;
 		//This_Robot.R_spead = Angl_ctrl(Angl_setpoint);
 		
@@ -451,7 +475,7 @@ ISR(TCD0_OVF_vect)
 		TX_Time = 0 ;
 		if (Last_TX_time + 4 < time_ms)
 		{
-			data_transmission () ;
+			//data_transmission () ;
 			Last_TX_time = time_ms;
 		}
 		
@@ -804,35 +828,40 @@ ISR(USARTE0_RXC_vect)
 
 void NRF_init (void)
 {
-	NRF24L01_L_CE_LOW;       //disable transceiver modes
+	 NRF24L01_L_CE_LOW;       //disable transceiver modes
 
-	SPI_Init();
+	 SPI_Init();
 
-	_delay_us(10);
-	_delay_ms(11);      //power on reset delay needs 10.3ms//amin changed 100ms to 11ms
-	NRF24L01_L_Clear_Interrupts();
-	NRF24L01_L_Flush_TX();
-	NRF24L01_L_Flush_RX();
-	NRF24L01_L_CE_LOW;
-	if (RobotID < 3)
-	NRF24L01_L_Init_milad(_TX_MODE, _CH_0, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
-	else if(RobotID > 2 && RobotID < 6)
-	NRF24L01_L_Init_milad(_TX_MODE, _CH_1, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
-	else if (RobotID > 5 && RobotID < 9)
-	NRF24L01_L_Init_milad(_TX_MODE, _CH_2, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
-	else
-	NRF24L01_L_Init_milad(_TX_MODE, _CH_3, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
-	NRF24L01_L_WriteReg(W_REGISTER | DYNPD,0x01);
-	NRF24L01_L_WriteReg(W_REGISTER | FEATURE,0x06);
+	 _delay_us(10);
+	 _delay_ms(11);      //power on reset delay needs 10.3ms//amin changed 100ms to 11ms
+	 NRF24L01_L_Clear_Interrupts();
+	 NRF24L01_L_Flush_TX();
+	 NRF24L01_L_Flush_RX();
+	 NRF24L01_L_CE_LOW;
+	 // 	    if (RobotID < 3)
+	 // 	    NRF24L01_L_Init_milad(_TX_MODE, _CH_0, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+	 // 	    else if(RobotID > 2 && RobotID < 6)
+	 // 	    NRF24L01_L_Init_milad(_TX_MODE, _CH_1, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+	 // 	    else if (RobotID > 5 && RobotID < 9)
+	 // 	    NRF24L01_L_Init_milad(_TX_MODE, _CH_2, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+	 // 	    else
+	 // 	    NRF24L01_L_Init_milad(_TX_MODE, _CH_3, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+	 if (RobotID < 3)
+	 NRF24L01_L_Init_milad(_RX_MODE, _CH_1, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+	 else if(RobotID > 2 && RobotID < 6)
+	 NRF24L01_L_Init_milad(_RX_MODE, _CH_0, _2Mbps, Address, _Address_Width, _Buffer_Size, RF_PWR_MAX);
+	 NRF24L01_L_WriteReg(W_REGISTER | DYNPD,0x01);
+	 NRF24L01_L_WriteReg(W_REGISTER | FEATURE,0x06);
 
-	NRF24L01_L_CE_HIGH;
-	_delay_us(130);
+	 NRF24L01_L_CE_HIGH;
+	 _delay_us(130);
 }
 
 void data_transmission (void)
 {
 	//transmitting data to wireless board/////////////////////////////////////////////////
-	Test_Data[0] = time_diff;
+	// 		Test_Data[0] = time_diff;
+	// 		Test_Data[1] = time_ms;
 	
 	Buf_Tx_L[0]  = (Test_Data[0]>> 8) & 0xFF;	//drive test data
 	Buf_Tx_L[1]  = Test_Data[0] & 0xFF;			//drive test data
@@ -844,7 +873,7 @@ void data_transmission (void)
 	Buf_Tx_L[7]  = Test_Data[3] & 0xFF;			//drive test data
 	Buf_Tx_L[8]  = (Test_Data[4]>> 8) & 0xFF;	// unused
 	Buf_Tx_L[9]  = Test_Data[4] & 0xFF;			// unused
-	Buf_Tx_L[10] = (Test_Data[5]>> 8) & 0xFF;	// unused
+	Buf_Tx_L[10] = (Test_Data[5]>> 8) & 0xFF;// unused
 	Buf_Tx_L[11] = Test_Data[5] & 0xFF;			// unused
 	Buf_Tx_L[12] = (Test_Data[6]>> 8) & 0xFF;	// unused
 	Buf_Tx_L[13] = Test_Data[6] & 0xFF;			// unused
@@ -855,7 +884,7 @@ void data_transmission (void)
 
 	//LED_Red_PORT.OUTTGL = LED_Red_PIN_bm;
 	NRF24L01_L_Write_TX_Buf(Buf_Tx_L, _Buffer_Size);
-	NRF24L01_L_RF_TX();
+	//NRF24L01_L_RF_TX();
 }
 
 /*! TWIF Master Interrupt vector. */

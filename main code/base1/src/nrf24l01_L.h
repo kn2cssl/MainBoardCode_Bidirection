@@ -9,8 +9,8 @@
 #include "initialize.h"
 #include <util/delay.h>
 #define	_CH_0 50			// Channel 0..125
-#define	_CH_1 1	
-#define _CH_2 125
+#define	_CH_1 1	//100
+#define _CH_2 125  //125
 #define _CH_3 100
 #define	_Address_Width	5	// 3..5
 #define _Buffer_Size 32 // 1..32
@@ -58,7 +58,7 @@
 // # define NRF24L01_L_set_data2_low()  (NRF24L01_L_PORTOUTSET = NRF24L01_L_DATA2_LINE)
 // # define NRF24L01_L_set_clk2_high()  (NRF24L01_L_PORTOUTSET = NRF24L01_L_CLK2_LINE)
 // # define NRF24L01_L_set_clk2_low()   (NRF24L01_L_PORTOUTCLR = NRF24L01_L_CLK2_LINE)
-// # define NRF24L01_L_dr2_is_high()    (NRF24L01_L_PORT_IN & NRF24L01_L_DR2_LINE)
+// # define NRF24L01_L_dr2_is_high()    (NRF24L01_L_PORT_IN & NRF24L01_L_DR2_LINE)
 
 /* Port 0, bit 17 is set to GPIO output (NRF24L01 CE) */
 //#define NRF24L01_L_CE_OUT		NRF24L01_L_set_ce_output()
@@ -144,11 +144,8 @@ char SPI_L(char TX_Data);
 #define	_2Mbps	(1<<3)
 
 /** Enable ShockBurst
-
  Automatic Retransmission (Up to 1 Re-Transmit on fail of AA)
-
  Auto Acknowledgment (data pipe 0)
-
  @see NRF24L01_L_Set_ShockBurst(char Mode)
  */
 #define _ShockBurst_ON 1
@@ -234,6 +231,7 @@ char NRF24L01_L_Clear_Interrupts(void);
 void NRF24L01_L_Set_TX_Address(char *Address, int Size);
 void NRF24L01_L_Flush_TX(void);
 void NRF24L01_L_Flush_RX(void);
+void NRF24L01_L_NOACK_TX(void);
 void NRF24L01_L_Init(char Device_Mode, char CH, char DataRate,
 		char *Address, char Address_Width, char Size_Payload, char Tx_Power);
 void NRF24L01_L_Init_milad(char Device_Mode, char CH, char DataRate,
