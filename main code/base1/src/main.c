@@ -202,14 +202,14 @@ int main (void)
 		gyro_degree=i*0.01745;//pi/180
 		Test_Data[0]=i;
 		}
-		//disp_test=t_test;
-		//uint8_t count1;
-		//char str1[200];
-		//count1 = sprintf(str1,"%d \r",(int)disp_test);
-		//for (uint8_t i=0;i<count1;i++)
-		//{
-			//usart_putchar(&USARTE0,str1[i]);
-		//}
+		disp_test=t_test;
+		uint8_t count1;
+		char str1[200];
+		count1 = sprintf(str1,"%d \r",(int)i);
+		for (uint8_t i=0;i<count1;i++)
+		{
+			usart_putchar(&USARTE0,str1[i]);
+		}
 											
 
 		//uint8_t count1;

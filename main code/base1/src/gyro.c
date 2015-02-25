@@ -176,7 +176,7 @@ int  read_mpu(void)
 	
 	//accelX=x_a.real;
 	//accelY=y_a.real;
-	accelZ=z_a.real;
+	//accelZ=z_a.real;
 	 
 	//gyroX = (abs(gyroX)> GyroThreshold) ? gyroX  : 0;
 	//gyroY = (abs(gyroY)> GyroThreshold) ? gyroY  : 0;
@@ -200,7 +200,7 @@ int  read_mpu(void)
 	//////////matrix update ////////////////////
 	//Gyro_Vector[0]=Gyro_Scaled_X(read_raw_data(0)); //gyro x roll
 	//Gyro_Vector[1]=Gyro_Scaled_Y(read_raw_data(1)); //gyro y pitch
-	Gyro_Vector[2]=Gyro_Scaled_Z(read_raw_data(2)); //gyro Z yaw
+	//Gyro_Vector[2]=Gyro_Scaled_Z(read_raw_data(2)); //gyro Z yaw
 	
 	//Accel_Vector[0]=read_raw_data(3);               // acc x
 	//Accel_Vector[1]=read_raw_data(4);               // acc y
