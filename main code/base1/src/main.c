@@ -140,7 +140,8 @@ int main (void)
 
     PORT_init();
     TimerD0_init();
-    TimerC0_init();
+	TimerD1_init();
+    //TimerC0_init();
     USARTF0_init();
     USARTF1_init();
 	USARTE0_init();
@@ -171,47 +172,53 @@ int main (void)
     while(1)
     {
         //Angl_setpoint=1.5;
+		if(gyroi)
+		{
+			
 		asm("wdr");
-		if (gyroi==1)
+		yaw_speed=read_mpu()+7;
+		if (abs(yaw_speed)<50)
 		{
-						disp_test=t_test;
-						//a=i2c_readReg(MPUREG_WHOAMI);
-						yaw_speed=read_mpu()+7;
-						if (abs(yaw_speed)<50)
-						{
-							yaw_speed=0;
-						}
-
-						yaw_rot-=yaw_speed;
-						
-						if (icounter<6)
-						{
-							yaw_rot=0;
-							icounter++;
-						}
-						if (yaw_rot>88935)
-						{
-							yaw_rot=-88935;
-						}
-						if (yaw_rot<-88935)
-						{
-							yaw_rot=88935;
-						}
-
-						i=(yaw_rot*0.53*2.0226/1000);// Data conversion factor to angle :2.5174/1000
-						gyro_degree=i*0.01745;//pi/180
-						
-
-						gyroi=0;
+			yaw_speed=0;
 		}
+
+		yaw_rot-=yaw_speed;
 		
-		uint8_t count1;
-		char str1[200];
-		count1 = sprintf(str1,"%d \r",(int)disp_test);
-		for (uint8_t i=0;i<count1;i++)
+		if (icounter<6)
 		{
-		usart_putchar(&USARTE0,str1[i]);
+			yaw_rot=0;
+			icounter++;
 		}
+		if (yaw_rot>88935)
+		{
+			yaw_rot=-88935;
+		}
+		if (yaw_rot<-88935)
+		{
+			yaw_rot=88935;
+		}
+
+		i=(yaw_rot*0.53*2.0226/1000);// Data conversion factor to angle :2.5174/1000
+		gyro_degree=i*0.01745;//pi/180
+		Test_Data[0]=i;
+		}
+		//disp_test=t_test;
+		//uint8_t count1;
+		//char str1[200];
+		//count1 = sprintf(str1,"%d \r",(int)disp_test);
+		//for (uint8_t i=0;i<count1;i++)
+		//{
+			//usart_putchar(&USARTE0,str1[i]);
+		//}
+											
+
+		//uint8_t count1;
+		//char str1[200];
+		//count1 = sprintf(str1,"%d \r",(int)disp_test);
+		//for (uint8_t i=0;i<count1;i++)
+		//{
+		//usart_putchar(&USARTE0,str1[i]);
+		//}
 
 
 
@@ -471,6 +478,13 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PRX
 	}
 }
 
+ISR(TCD1_OVF_vect)
+{
+	//t_test=0;
+	//a=i2c_readReg(MPUREG_WHOAMI);
+	
+
+}
 
 char timectrl;
 long int t_alarm;
@@ -490,21 +504,11 @@ ISR(TCD0_OVF_vect)
 		
 	}
 	
-	TX_Time ++;
-	if (TX_Time == 2)
-	{
-		TX_Time = 0 ;
-		if (Last_TX_time + 4 < time_ms)
-		{
-			//data_transmission () ;
-			Last_TX_time = time_ms;
-		}
-		
-	}
+
 
 	wdt_reset();
 	t_alarm++;
-	wireless_reset++;
+	//wireless_reset++;
 	free_wheel++;// for making wheels free when there is no wireless data
 	//timer for 1msTest_RPM
 	time_ms++;
@@ -594,9 +598,9 @@ ISR(PORTH_INT0_vect)
 {
 }
 
-ISR(PORTC_INT0_vect)
-{
-}
+//ISR(PORTC_INT0_vect)
+//{
+//}
 
 ISR(PORTQ_INT1_vect)
 {

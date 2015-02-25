@@ -81,16 +81,16 @@ void PORT_init(void)
    
 };
 
-void TimerC0_init(void)
-{
-	tc_write_clock_source(&TCC0,TC_CLKSEL_DIV256_gc);
-	tc_set_wgm(&TCC0,TC_WG_SS);
-	tc_write_period(&TCC0,0x00FF);
-	tc_set_direction(&TCC0,TC_UP);
-	tc_enable_cc_channels(&TCC0,TC_CCAEN);
-	tc_enable_cc_channels(&TCC0,TC_CCBEN);
-	tc_enable(&TCC0);
-};
+//void TimerC0_init(void)
+//{
+	//tc_write_clock_source(&TCC0,TC_CLKSEL_DIV256_gc);
+	//tc_set_wgm(&TCC0,TC_WG_SS);
+	//tc_write_period(&TCC0,0x00FF);
+	//tc_set_direction(&TCC0,TC_UP);
+	//tc_enable_cc_channels(&TCC0,TC_CCAEN);
+	//tc_enable_cc_channels(&TCC0,TC_CCBEN);
+	//tc_enable(&TCC0);
+//};
 
 
 #define TIMERD0_PER 0x7D
@@ -98,10 +98,20 @@ void TimerD0_init(void)
 {
 	tc_write_clock_source(&TCD0,TC_CLKSEL_DIV256_gc);
 	tc_set_wgm(&TCD0,TC_WG_NORMAL);
-	tc_set_overflow_interrupt_level(&TCD0,TC_INT_LVL_MED);
+	tc_set_overflow_interrupt_level(&TCD0,TC_INT_LVL_HI);
 	tc_write_period(&TCD0,TIMERD0_PER);
 	tc_set_direction(&TCD0,TC_UP);
 	tc_enable(&TCD0);
+};
+#define TIMERD1_PER 0x4E2 //384
+void TimerD1_init(void)
+{
+	tc_write_clock_source(&TCD1,TC_CLKSEL_DIV256_gc);
+	tc_set_wgm(&TCD1,TC_WG_NORMAL);
+	tc_set_overflow_interrupt_level(&TCD1,TC_INT_LVL_MED);
+	tc_write_period(&TCD1,TIMERD1_PER);
+	tc_set_direction(&TCD1,TC_UP);
+	tc_enable(&TCD1);
 };
 
 void SPI_Init(void)

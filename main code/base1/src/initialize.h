@@ -207,6 +207,7 @@ void TimerC0_init(void);
 #define TIMERD0_PER 0x7D  //?!
 
 void TimerD0_init(void);
+void TimerD1_init(void);
 
 void SPI_Init(void);
 
