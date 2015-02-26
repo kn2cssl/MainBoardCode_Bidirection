@@ -29,7 +29,7 @@ inline int Angl_ctrl(int);
 void T_10ms(void);
 
 #define CPU_SPEED       32000000
-#define BAUDRATE	    100000
+#define BAUDRATE	    1000000 //100000
 #define TWI_BAUDSETTING TWI_BAUD(CPU_SPEED, BAUDRATE)
 #define ROBOTRADIUS 0.090
 #define SpeedToRPM 1375.14
@@ -47,7 +47,7 @@ unsigned char current_ov;
 int curr_alarm=0,curr_alarm0,curr_alarm1,curr_alarm2,curr_alarm3;
 int flg_alarm=0;
 int flg_angl=0;
-uint16_t t_1ms=0,t_test,disp_test;
+uint16_t t_1ms=0,t_gyro=0,t_gyro_last=0,t_test,disp_test;
 float degree,degree_last;
 	float gyro_degree=0;
 	long int yaw_speed=0,yaw_rot=0;
@@ -128,7 +128,7 @@ int main (void)
 {
 	
 	/* Initialize TWI master. */
-	TWI_MasterInit(&twiMaster,&TWID,TWI_MASTER_INTLVL_LO_gc,TWI_BAUDSETTING);
+	TWI_MasterInit(&twiMaster,&TWID,TWI_MASTER_INTLVL_HI_gc,TWI_BAUDSETTING);
 	TWID.SLAVE.CTRLA=0;  //slave disabled
 	
 	
@@ -162,63 +162,117 @@ int main (void)
 	
 	mpu6050_init(); // This Initialization must be after NRF Initialize otherwise nrf wont work!! 
 	
- 	//long int yaw_speed=0,yaw_rot=0;
- 	//float i=0;
-    //int c=0;
- 	//float ang_setpoint=0;
-	//int icounter=0;
-    //gyro_degree=0;
+	
     // Insert application code here, after the board has been initialized.
-    while(1)
-    {
-        //Angl_setpoint=1.5;
-		if(gyroi)
-		{
-			
-		asm("wdr");
-		yaw_speed=read_mpu()+7;
-		if (abs(yaw_speed)<50)
-		{
-			yaw_speed=0;
-		}
+	yaw_rot=0;
+	yaw_speed=0;    
+	gyro_degree=0;
+	icounter=0;
+	
+	char buff_offset[320];
+	int offset=0;
+	
+	while(1)
 
-		yaw_rot-=yaw_speed;
+    {
+        
+		asm("wdr");
+		
+		//////////////////////////////////////////////////////   calculating the offset of gyro
+		//offset=0;
+		//for (int i=0;i<300;i++)
+		//{
+			//buff_offset[i]=read_mpu();
+			//offset+=buff_offset[i];
+			//
+		//}
+		//offset = offset/300;
+		//Test_Data[0]=offset;
+		//uint8_t count1;
+		//char str1[200];
+		//count1 = sprintf(str1,"%d \r",(int)offset);
+		//for (uint8_t i=0;i<count1;i++)
+		//{
+			//usart_putchar(&USARTE0,str1[i]);
+		//}
+		/////////////////////////////////////////////////////////////////////////
+		
+		
+		//**************************************************robot dir setting************************************************************//	
+		yaw_speed=read_mpu();
+				
+		t_gyro_last=t_gyro;
+		t_gyro=t_1ms;
+		
+		yaw_rot-=(((t_gyro-t_gyro_last)*yaw_speed));
 		
 		if (icounter<6)
 		{
 			yaw_rot=0;
 			icounter++;
 		}
-		if (yaw_rot>88935)
+		
+		gyro_degree=yaw_rot/1000;
+		if (gyro_degree>=180)
 		{
-			yaw_rot=-88935;
+			gyro_degree-=360;
 		}
-		if (yaw_rot<-88935)
+		else if (gyro_degree<=-180)
 		{
-			yaw_rot=88935;
+			gyro_degree+=360;
 		}
+		Test_Data[0]=gyro_degree;
+		Test_Data[1]=(t_gyro-t_gyro_last);
+		
+		
+		This_Robot.L_spead_x = 0;//(( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ));
+		This_Robot.L_spead_y = 0;//(( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ));
+		This_Robot.dir = gyro_degree;
+		if (This_Robot.angel_setpoint != (( ((Robot_D[RobotID].M0a<<8) & 0xff00) | (Robot_D[RobotID].M0b & 0x00ff) )))
+		{
+			This_Robot.angel_setpoint = (( ((Robot_D[RobotID].M0a<<8) & 0xff00) | (Robot_D[RobotID].M0b & 0x00ff) ));
+			This_Robot.dir=0;
+		}
+		
 
-		i=(yaw_rot*0.53*2.0226/1000);// Data conversion factor to angle :2.5174/1000
-		gyro_degree=i*0.01745;//pi/180
-		Test_Data[0]=i;
-		}
-		disp_test=t_test;
-		uint8_t count1;
-		char str1[200];
-		count1 = sprintf(str1,"%d \r",(int)i);
-		for (uint8_t i=0;i<count1;i++)
+		if(flg_angl==1)
 		{
-			usart_putchar(&USARTE0,str1[i]);
-		}
-											
+			Angl_setpoint =This_Robot.angel_setpoint*0.01745;
+			This_Robot.R_spead_last = This_Robot.R_spead ;
+			This_Robot.R_spead = Angl_PID ;
+			Angl_d = This_Robot.R_spead - This_Robot.R_spead_last;
+			
+			
+			This_Robot.R_spead = Angl_ctrl(Angl_setpoint);
 
-		//uint8_t count1;
-		//char str1[200];
-		//count1 = sprintf(str1,"%d \r",(int)disp_test);
-		//for (uint8_t i=0;i<count1;i++)
-		//{
-		//usart_putchar(&USARTE0,str1[i]);
-		//}
+
+			
+			speed[0][0] = -(float)((float)This_Robot.L_spead_x * (float)cos(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)sin(This_Robot.dir/precision))/precision;
+			speed[1][0] = -(float)(-(float)This_Robot.L_spead_x * (float)sin(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)cos(This_Robot.dir/precision))/precision;
+			speed[2][0] = -(float)(This_Robot.R_spead)/precision;
+
+			rotate[0][0] = 0.832063;//cos( 0.18716 * M_PI);
+			rotate[1][0] = 0.707107;//sin( M_PI / 4.0 );
+			rotate[2][0] = -0.707107;//-cos( M_PI / 4.0 );
+			rotate[3][0] = -0.832063;//-cos( 0.18716 * M_PI);
+			rotate[0][1] = -0.554682;//-sin(0.18716 * M_PI );
+			rotate[1][1] = 0.707107;//cos(M_PI / 4.0 );
+			rotate[2][1] = 0.707107;//sin(M_PI / 4.0);
+			rotate[3][1] = -0.554682;//-sin(0.18716 * M_PI);
+
+			rotate[0][2] = -ROBOTRADIUS;
+			rotate[1][2] = -ROBOTRADIUS;
+			rotate[2][2] = -ROBOTRADIUS;
+			rotate[3][2] = -ROBOTRADIUS;
+
+			motor[0][0] = (signed int)(rotate[0][0] * speed[0][0]*SpeedToRPM + rotate[0][1] * speed[1][0]*SpeedToRPM + rotate[0][2] * speed[2][0]*SpeedToRPM);
+			motor[1][0] = (rotate[1][0] * speed[0][0] + rotate[1][1] * speed[1][0] + rotate[1][2] * speed[2][0])*SpeedToRPM;
+			motor[2][0] = (rotate[2][0] * speed[0][0] + rotate[2][1] * speed[1][0] + rotate[2][2] * speed[2][0])*SpeedToRPM;
+			motor[3][0] = (rotate[3][0] * speed[0][0] + rotate[3][1] * speed[1][0] + rotate[3][2] * speed[2][0])*SpeedToRPM;
+		}
+		
+		
+		
 
 
 
@@ -249,6 +303,7 @@ int main (void)
 	            flg = 1;
             }
             //////////////////////////////SHOOT END ///////////////////////
+			
 			curr_alarm0=((PORTH_IN&PIN4_bm)>>4);
             curr_alarm1=((PORTQ_IN&PIN1_bm)>>1);
             curr_alarm2=((PORTQ_IN&PIN2_bm)>>2);
@@ -262,74 +317,9 @@ int main (void)
 	            driverTGL=1;
             }
             else
-            driverTGL=0;
-            
-			
-			This_Robot.L_spead_x = 0;//(( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ));
-			This_Robot.L_spead_y = 0;//(( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ));
-			if (This_Robot.angel_setpoint != (( ((Robot_D[RobotID].M0a<<8) & 0xff00) | (Robot_D[RobotID].M0b & 0x00ff) )))
-			{
-				This_Robot.angel_setpoint = (( ((Robot_D[RobotID].M0a<<8) & 0xff00) | (Robot_D[RobotID].M0b & 0x00ff) ));
-				This_Robot.dir=0;
-			}
-			
-			//This_Robot.R_spead	 = (1.500-gyro_degree)*50000.0;//(( ((Robot_D[RobotID].RotationSpeed0<<8) & 0xff00) | (Robot_D[RobotID].RotationSpeed1 & 0x00ff) ));
-			//This_Robot.dir = gyro_degree*precision;
-			//This_Robot.R_speed = kp_gyro*(ang_setpoint - gyro_degree)*50000.0 ;
-
-//**************************************************robot dir setting************************************************************//			
-
-			if(flg_angl==1)
-			{
-				        Angl_setpoint =This_Robot.angel_setpoint*0.01745;
-				    	This_Robot.R_spead_last = This_Robot.R_spead ;
-				    	This_Robot.R_spead = Angl_PID ;
-				        Angl_d = This_Robot.R_spead - This_Robot.R_spead_last;
-						
-					
-					This_Robot.R_spead = Angl_ctrl(Angl_setpoint);	
-
-			//if(flg_angl==1)
-			//{
-				        //Angl_setpoint =1.500;
-				    	//This_Robot.R_spead_last = This_Robot.R_spead ;
-				    	//This_Robot.R_spead = Angl_PID ;
-				        //Angl_d = This_Robot.R_spead - This_Robot.R_spead_last;
-						//
-					//
-					//This_Robot.R_spead = Angl_ctrl(Angl_setpoint);	
-
-			
-			speed[0][0] = -(float)((float)This_Robot.L_spead_x * (float)cos(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)sin(This_Robot.dir/precision))/precision;
-			speed[1][0] = -(float)(-(float)This_Robot.L_spead_x * (float)sin(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)cos(This_Robot.dir/precision))/precision;
-			speed[2][0] = -(float)(This_Robot.R_spead)/precision;
-
-			rotate[0][0] = 0.832063;//cos( 0.18716 * M_PI);
-			rotate[1][0] = 0.707107;//sin( M_PI / 4.0 );
-			rotate[2][0] = -0.707107;//-cos( M_PI / 4.0 );
-			rotate[3][0] = -0.832063;//-cos( 0.18716 * M_PI);
-			rotate[0][1] = -0.554682;//-sin(0.18716 * M_PI );
-			rotate[1][1] = 0.707107;//cos(M_PI / 4.0 );
-			rotate[2][1] = 0.707107;//sin(M_PI / 4.0);
-			rotate[3][1] = -0.554682;//-sin(0.18716 * M_PI);
-
-			rotate[0][2] = -ROBOTRADIUS;
-			rotate[1][2] = -ROBOTRADIUS;
-			rotate[2][2] = -ROBOTRADIUS;
-			rotate[3][2] = -ROBOTRADIUS;
-
-			motor[0][0] = (signed int)(rotate[0][0] * speed[0][0]*SpeedToRPM + rotate[0][1] * speed[1][0]*SpeedToRPM + rotate[0][2] * speed[2][0]*SpeedToRPM);
-			motor[1][0] = (rotate[1][0] * speed[0][0] + rotate[1][1] * speed[1][0] + rotate[1][2] * speed[2][0])*SpeedToRPM;
-			motor[2][0] = (rotate[2][0] * speed[0][0] + rotate[2][1] * speed[1][0] + rotate[2][2] * speed[2][0])*SpeedToRPM;
-			motor[3][0] = (rotate[3][0] * speed[0][0] + rotate[3][1] * speed[1][0] + rotate[3][2] * speed[2][0])*SpeedToRPM;
-
-
-			flg_angl=0;
-			}
-
-
-
-            //sending driver packet/////////////////////////////////////////////////////////////////
+            driverTGL=0;   
+			            
+			//sending driver packet/////////////////////////////////////////////////////////////////
             //duration for sending all of the packet : 13 ms
             //sending every character last about 1 ms
             usart_putchar(&USARTF0,'*');
@@ -490,25 +480,13 @@ char timectrl;
 long int t_alarm;
 
 ISR(TCD0_OVF_vect)
-{t_test++;
-	gyroi=1;
+{
+	t_test++;
 	t_1ms++;
-	if (t_1ms>=20)
-	{
-		
-		//T_10ms();
-		t_1ms=0;
-		flg_angl=1;
-		//Angl_setpoint =1.5;
-		//This_Robot.R_spead = Angl_ctrl(Angl_setpoint);
-		
-	}
 	
-
-
 	wdt_reset();
 	t_alarm++;
-	//wireless_reset++;
+	
 	free_wheel++;// for making wheels free when there is no wireless data
 	//timer for 1msTest_RPM
 	time_ms++;
@@ -911,11 +889,21 @@ void data_transmission (void)
 	NRF24L01_L_Write_TX_Buf(Buf_Tx_L, _Buffer_Size);
 	//NRF24L01_L_RF_TX();
 }
-
+char data;
 /*! TWIF Master Interrupt vector. */
 ISR(TWID_TWIM_vect)
 {
+	//LED_White_PORT.OUTTGL = LED_White_PIN_bm;
+	//uint8_t count1;
+		//char str1[200];
+		//count1 = sprintf(str1,"%d \r",(int)10);
+		//for (uint8_t i=0;i<count1;i++)
+		//{
+		//usart_putchar(&USARTE0,str1[i]);
+		//}
 	TWI_MasterInterruptHandler(&twiMaster);
+	//data=twiMaster.readData[0];
+		
 }
 inline int Angl_ctrl(int setpoint)
 {

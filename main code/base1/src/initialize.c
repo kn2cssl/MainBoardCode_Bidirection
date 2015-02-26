@@ -135,7 +135,7 @@ void USARTE0_init(void)
 }
 
 #define USARTF0_conf USARTF0
-#define USARTF0_BUADRATE 9600
+#define USARTF0_BUADRATE 38400//9600
 void USARTF0_init(void)
 {
 	usart_set_mode(&USARTF0_conf,USART_CMODE_ASYNCHRONOUS_gc);

@@ -100,8 +100,11 @@ unsigned char i2c_readReg(char reg_address)
 	while (twiMaster.status != TWIM_STATUS_READY) {
 		/* Wait until transaction is complete. */
 	}
-	data=twiMaster.readData[0];
-	return data;
+	//if(twiMaster.status = TWIM_STATUS_READY)
+	//{
+		data=twiMaster.readData[0];
+		return data;
+	//}
 }
 
 void mpu6050_init(void)
@@ -172,6 +175,11 @@ int  read_mpu(void)
 	//gyroX=x_g.real;
 	//gyroY=y_g.real;
 	gyroZ=z_g.real;
+	if (abs(gyroZ)<50)
+	{
+		gyroZ=0;
+	}
+	gyroZ = gyroZ*0.06098;
 	
 	
 	//accelX=x_a.real;
