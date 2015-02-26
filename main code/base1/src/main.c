@@ -184,7 +184,7 @@ int main (void)
 		
 		//data_transmission () ;
 		
-		if (free_wheel == 500 )
+		if (free_wheel > 500 )
 		{
 			NRF_init();
 			
