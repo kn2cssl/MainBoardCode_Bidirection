@@ -47,12 +47,10 @@ unsigned char current_ov;
 int curr_alarm=0,curr_alarm0,curr_alarm1,curr_alarm2,curr_alarm3;
 int flg_alarm=0;
 int flg_angl=0;
-uint16_t t_1ms=0,t_gyro=0,t_gyro_last=0,t_test,disp_test;
+uint16_t t_1ms=0,t_gyro=0,t_gyro_last=0,dt,t_test,disp_test,ang=0;
 float degree,degree_last;
-	float gyro_degree=0;
+	float gyro_degree=0,gyro_radian=0;
 	long int yaw_speed=0,yaw_rot=0;
-	float i=0;
-	int c=0;
 	float ang_setpoint=0;
 	int icounter=0;
 
@@ -90,7 +88,7 @@ uint32_t time_ms=0,kck_time,Buzzer_Time=1,Last_TX_time;
 uint16_t Buzzer_Speed;
 int8_t m_reset_counter = 0;
 
-
+int i=0 ;
 
 int Seg[18] = {Segment_0,Segment_1,Segment_2,Segment_3,Segment_4,Segment_5,Segment_6,Segment_7,Segment_8,Segment_9,
 Segment_10,Segment_11,Segment_12,Segment_13,Segment_14,Segment_15,Segment_Dash};
@@ -107,7 +105,7 @@ Motor_Param M[4];
 //////////  motor speed variable
 struct Robot
 {
-	int angel_setpoint;
+	float angel_setpoint;
 	int dir;
 	int dir_cam;
 	int L_spead_x;//linear sped x
@@ -196,134 +194,158 @@ int main (void)
 			//usart_putchar(&USARTE0,str1[i]);
 		//}
 		/////////////////////////////////////////////////////////////////////////
-		
-		
-		//**************************************************robot dir setting************************************************************//	
-		yaw_speed=read_mpu();
+		if (flg_angl)
+		{
+			flg_angl=0;
+			disp_test=t_test;
+			
+			//**************************************************robot dir setting************************************************************//
+			yaw_speed=read_mpu();
+			
+			t_gyro_last=t_gyro;
+			t_gyro=t_1ms;
+			dt = t_gyro-t_gyro_last;
+			
+			yaw_rot -= (dt*yaw_speed);
+			
+			if (icounter<6)
+			{
+				yaw_rot=0;
+				icounter++;
+			}
+			
+			gyro_degree=yaw_rot/1000;
+			if (gyro_degree>=180)
+			{
+				gyro_degree-=360;
+			}
+			else if (gyro_degree<=-180)
+			{
+				gyro_degree+=360;
+			}
+			
+			Test_Data[0]=gyro_degree;
+			Test_Data[1]=dt;
+			Test_Data[2]=(int)disp_test;
+			gyro_radian = gyro_degree * 0.017453;
+			//uint8_t count1;
+			//char str1[200];
+			//count1 = sprintf(str1,"%d ,%d ,%d ,%d \r",(int)gyro_degree,(int)This_Robot.angel_setpoint,(int)This_Robot.R_spead,(int)Angl_Err);
+			//for (uint8_t i=0;i<count1;i++)
+			//{
+			//usart_putchar(&USARTE0,str1[i]);
+			//}
+			
+			
+			This_Robot.L_spead_x = 0;//(( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ));
+			This_Robot.L_spead_y = 0;//(( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ));
+			This_Robot.angel_setpoint =(( ((Robot_D[RobotID].M0a<<8) & 0xff00) | (Robot_D[RobotID].M0b & 0x00ff) ));
+			
+			
+			if (Angl_setpoint == This_Robot.angel_setpoint)
+			This_Robot.dir = gyro_radian;
+			else
+			{
+				This_Robot.dir=0;
+				Angl_setpoint = This_Robot.angel_setpoint;
+			}
+			
+			
+
+			//if(flg_angl==1)
+			//{
+				//This_Robot.angel_setpoint=90;
+				//This_Robot.R_spead_last = This_Robot.R_spead ;
+				This_Robot.R_spead =(Angl_setpoint-gyro_radian);//Angl_PID ;
 				
-		t_gyro_last=t_gyro;
-		t_gyro=t_1ms;
-		
-		yaw_rot-=(((t_gyro-t_gyro_last)*yaw_speed));
-		
-		if (icounter<6)
-		{
-			yaw_rot=0;
-			icounter++;
-		}
-		
-		gyro_degree=yaw_rot/1000;
-		if (gyro_degree>=180)
-		{
-			gyro_degree-=360;
-		}
-		else if (gyro_degree<=-180)
-		{
-			gyro_degree+=360;
-		}
-		Test_Data[0]=gyro_degree;
-		Test_Data[1]=(t_gyro-t_gyro_last);
-		
-		
-		This_Robot.L_spead_x = 0;//(( ((Robot_D[RobotID].LinearSpeed_x0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_x1 & 0x00ff) ));
-		This_Robot.L_spead_y = 0;//(( ((Robot_D[RobotID].LinearSpeed_y0<<8) & 0xff00) | (Robot_D[RobotID].LinearSpeed_y1 & 0x00ff) ));
-		This_Robot.dir = gyro_degree;
-		if (This_Robot.angel_setpoint != (( ((Robot_D[RobotID].M0a<<8) & 0xff00) | (Robot_D[RobotID].M0b & 0x00ff) )))
-		{
-			This_Robot.angel_setpoint = (( ((Robot_D[RobotID].M0a<<8) & 0xff00) | (Robot_D[RobotID].M0b & 0x00ff) ));
-			This_Robot.dir=0;
-		}
-		
+				//Angl_d = (This_Robot.R_spead - This_Robot.R_spead_last)/dt;
+				
 
-		if(flg_angl==1)
-		{
-			Angl_setpoint =This_Robot.angel_setpoint*0.01745;
-			This_Robot.R_spead_last = This_Robot.R_spead ;
-			This_Robot.R_spead = Angl_PID ;
-			Angl_d = This_Robot.R_spead - This_Robot.R_spead_last;
+				//This_Robot.R_spead = Angl_ctrl(This_Robot.angel_setpoint)*0.0174;
+
+
+				
+				speed[0][0] = -(float)((float)This_Robot.L_spead_x * (float)cos(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)sin(This_Robot.dir/precision))/precision;
+				speed[1][0] = -(float)(-(float)This_Robot.L_spead_x * (float)sin(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)cos(This_Robot.dir/precision))/precision;
+				speed[2][0] = -(float)(This_Robot.R_spead);//precision;
+
+				rotate[0][0] = 0.832063;//cos( 0.18716 * M_PI);
+				rotate[1][0] = 0.707107;//sin( M_PI / 4.0 );
+				rotate[2][0] = -0.707107;//-cos( M_PI / 4.0 );
+				rotate[3][0] = -0.832063;//-cos( 0.18716 * M_PI);
+				rotate[0][1] = -0.554682;//-sin(0.18716 * M_PI );
+				rotate[1][1] = 0.707107;//cos(M_PI / 4.0 );
+				rotate[2][1] = 0.707107;//sin(M_PI / 4.0);
+				rotate[3][1] = -0.554682;//-sin(0.18716 * M_PI);
+
+				rotate[0][2] = -ROBOTRADIUS;
+				rotate[1][2] = -ROBOTRADIUS;
+				rotate[2][2] = -ROBOTRADIUS;
+				rotate[3][2] = -ROBOTRADIUS;
+
+				motor[0][0] =(signed int)(rotate[0][0] * speed[0][0]*SpeedToRPM + rotate[0][1] * speed[1][0]*SpeedToRPM + rotate[0][2] * speed[2][0]*SpeedToRPM);
+				motor[1][0] = (rotate[1][0] * speed[0][0] + rotate[1][1] * speed[1][0] + rotate[1][2] * speed[2][0])*SpeedToRPM;
+				motor[2][0] = (rotate[2][0] * speed[0][0] + rotate[2][1] * speed[1][0] + rotate[2][2] * speed[2][0])*SpeedToRPM;
+				motor[3][0] = (rotate[3][0] * speed[0][0] + rotate[3][1] * speed[1][0] + rotate[3][2] * speed[2][0])*SpeedToRPM;
+				
+				//flg_angl=0;
+			//}
+			
+			////////////////////////////////////////////////////////////////////////////////////
 			
 			
-			This_Robot.R_spead = Angl_ctrl(Angl_setpoint);
-
-
 			
-			speed[0][0] = -(float)((float)This_Robot.L_spead_x * (float)cos(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)sin(This_Robot.dir/precision))/precision;
-			speed[1][0] = -(float)(-(float)This_Robot.L_spead_x * (float)sin(This_Robot.dir/precision) + (float)This_Robot.L_spead_y * (float)cos(This_Robot.dir/precision))/precision;
-			speed[2][0] = -(float)(This_Robot.R_spead)/precision;
-
-			rotate[0][0] = 0.832063;//cos( 0.18716 * M_PI);
-			rotate[1][0] = 0.707107;//sin( M_PI / 4.0 );
-			rotate[2][0] = -0.707107;//-cos( M_PI / 4.0 );
-			rotate[3][0] = -0.832063;//-cos( 0.18716 * M_PI);
-			rotate[0][1] = -0.554682;//-sin(0.18716 * M_PI );
-			rotate[1][1] = 0.707107;//cos(M_PI / 4.0 );
-			rotate[2][1] = 0.707107;//sin(M_PI / 4.0);
-			rotate[3][1] = -0.554682;//-sin(0.18716 * M_PI);
-
-			rotate[0][2] = -ROBOTRADIUS;
-			rotate[1][2] = -ROBOTRADIUS;
-			rotate[2][2] = -ROBOTRADIUS;
-			rotate[3][2] = -ROBOTRADIUS;
-
-			motor[0][0] = (signed int)(rotate[0][0] * speed[0][0]*SpeedToRPM + rotate[0][1] * speed[1][0]*SpeedToRPM + rotate[0][2] * speed[2][0]*SpeedToRPM);
-			motor[1][0] = (rotate[1][0] * speed[0][0] + rotate[1][1] * speed[1][0] + rotate[1][2] * speed[2][0])*SpeedToRPM;
-			motor[2][0] = (rotate[2][0] * speed[0][0] + rotate[2][1] * speed[1][0] + rotate[2][2] * speed[2][0])*SpeedToRPM;
-			motor[3][0] = (rotate[3][0] * speed[0][0] + rotate[3][1] * speed[1][0] + rotate[3][2] * speed[2][0])*SpeedToRPM;
-		}
-		
-		
-		
 
 
 
-            //////////////////////SHOOT//////////////////////////////////
-            PORTC_OUTCLR=KCK_SH_PIN_bm;
-            if((KCK_Ch_Limit_PORT.IN & KCK_Ch_Limit_PIN_bm)>>KCK_Ch_Limit_PIN_bp)
-            {
-	            full_charge=1;
-	            tc_disable_cc_channels(&TCC0,TC_CCAEN);
-            }
-            else
-            {
-	            if(flg==0)
-	            {
-		            tc_enable_cc_channels(&TCC0,TC_CCAEN);
-	            }
-            }
-            
-            if (full_charge)
-            {
-	            if (Robot_D[RobotID].KCK )
-	            {
-		            flg = 1;
-	            }
-            }
-            if (KCK_DSH_SW)
-            {
-	            flg = 1;
-            }
-            //////////////////////////////SHOOT END ///////////////////////
+			//////////////////////SHOOT//////////////////////////////////
+			PORTC_OUTCLR=KCK_SH_PIN_bm;
+			if((KCK_Ch_Limit_PORT.IN & KCK_Ch_Limit_PIN_bm)>>KCK_Ch_Limit_PIN_bp)
+			{
+				full_charge=1;
+				tc_disable_cc_channels(&TCC0,TC_CCAEN);
+			}
+			else
+			{
+				if(flg==0)
+				{
+					tc_enable_cc_channels(&TCC0,TC_CCAEN);
+				}
+			}
+			
+			if (full_charge)
+			{
+				if (Robot_D[RobotID].KCK )
+				{
+					flg = 1;
+				}
+			}
+			if (KCK_DSH_SW)
+			{
+				flg = 1;
+			}
+			//////////////////////////////SHOOT END ///////////////////////
 			
 			curr_alarm0=((PORTH_IN&PIN4_bm)>>4);
-            curr_alarm1=((PORTQ_IN&PIN1_bm)>>1);
-            curr_alarm2=((PORTQ_IN&PIN2_bm)>>2);
-            curr_alarm3=((PORTC_IN&PIN4_bm)>>4);
-            curr_alarm= 0*curr_alarm0 + 1*curr_alarm1 + 2*curr_alarm2 + 3*curr_alarm3 ;
-            
-            current_ov=curr_alarm0 || curr_alarm1 || curr_alarm2 || curr_alarm3;
-            if (curr_alarm0 || curr_alarm1 || curr_alarm2 || curr_alarm3)   /////////  alarm of cuurent ov
-            {
-	            Buzzer_PORT.OUTSET = (flg_alarm>>Buzzer_PIN_bp);
-	            driverTGL=1;
-            }
-            else
-            driverTGL=0;   
-			            
+			curr_alarm1=((PORTQ_IN&PIN1_bm)>>1);
+			curr_alarm2=((PORTQ_IN&PIN2_bm)>>2);
+			curr_alarm3=((PORTC_IN&PIN4_bm)>>4);
+			curr_alarm= 0*curr_alarm0 + 1*curr_alarm1 + 2*curr_alarm2 + 3*curr_alarm3 ;
+			
+			current_ov=curr_alarm0 || curr_alarm1 || curr_alarm2 || curr_alarm3;
+			if (curr_alarm0 || curr_alarm1 || curr_alarm2 || curr_alarm3)   /////////  alarm of cuurent ov
+			{
+				Buzzer_PORT.OUTSET = (flg_alarm>>Buzzer_PIN_bp);
+				driverTGL=1;
+			}
+			else
+			driverTGL=0;
+			
 			//sending driver packet/////////////////////////////////////////////////////////////////
-            //duration for sending all of the packet : 13 ms
-            //sending every character last about 1 ms
-            usart_putchar(&USARTF0,'*');
-            usart_putchar(&USARTF0,'~');
+			//duration for sending all of the packet : 13 ms
+			//sending every character last about 1 ms
+			usart_putchar(&USARTF0,'*');
+			usart_putchar(&USARTF0,'~');
 			usart_putchar(&USARTF0,(motor[0][0] >> 8) & 0x0ff);
 			usart_putchar(&USARTF0,motor[0][0] & 0x0ff);
 			usart_putchar(&USARTF0,(motor[1][0] >> 8) & 0x0ff);
@@ -331,7 +353,7 @@ int main (void)
 			usart_putchar(&USARTF0,(motor[2][0] >> 8) & 0x0ff);
 			usart_putchar(&USARTF0,motor[2][0] & 0x0ff);
 			usart_putchar(&USARTF0,(motor[3][0] >> 8) & 0x0ff);
-			usart_putchar(&USARTF0,motor[3][0] & 0x0ff);	
+			usart_putchar(&USARTF0,motor[3][0] & 0x0ff);
 			usart_putchar(&USARTF0,0);//Robot_D[RobotID].ASK);
 			
 			if(current_ov) //((Robot_D[RobotID].M0a == 1)
@@ -385,6 +407,10 @@ int main (void)
 			// this function take time (about 16 ms)
 			//so do not use it unless in test cases
 			//disp_ans();
+			
+		}
+		
+		
 
     }
 }
@@ -417,6 +443,9 @@ ISR(PORTE_INT0_vect)////////////////////////////////////////PRX
 			Robot_D[RobotID].KCK  = Buf_Rx_L[9+ RobotID%3 * 10];
 			Robot_D[RobotID].CHP  = Buf_Rx_L[10+RobotID%3 * 10];
 			Robot_D[RobotID].ASK  = Buf_Rx_L[31];//0b00000000
+			Robot_D[RobotID].P    = Buf_Rx_L[1];
+			Robot_D[RobotID].I    = Buf_Rx_L[2];
+			Robot_D[RobotID].D    = Buf_Rx_L[3];
 			
 			if (Robot_D[RobotID].ASK != Robot_Select)
 			{
@@ -483,6 +512,12 @@ ISR(TCD0_OVF_vect)
 {
 	t_test++;
 	t_1ms++;
+	ang++;
+	if(ang>=20)
+	{
+		flg_angl=1;
+		ang=0;
+		}
 	
 	wdt_reset();
 	t_alarm++;
@@ -907,19 +942,20 @@ ISR(TWID_TWIM_vect)
 }
 inline int Angl_ctrl(int setpoint)
 {
-	kp_gyro=1;
-	ki_gyro=0;
+	kp_gyro=1.3;
+	ki_gyro=0.5;
 	kd_gyro=0;
 	
+	
 	Angl_Err= setpoint - gyro_degree ;
-	Angl_i+= setpoint - gyro_degree ;
+	Angl_i+= (setpoint - gyro_degree)*dt ;
 	
 	
-	Angl_PID = ((Angl_Err*kp_gyro) + (Angl_d)*kd_gyro + (Angl_i)*ki_gyro)*10000;//1000000.0;
+	Angl_PID = ((Angl_Err*kp_gyro) + (Angl_i)*ki_gyro - (Angl_d)*kd_gyro)*10000;//1000000.0;
 	
 	//uint8_t count1;
 	//char str1[200];
-	//count1 = sprintf(str1,"%d , %d \r",(int)(Angl_Err),(int)(gyro_degree));
+	//count1 = sprintf(str1,"%d , %d \r",(int)(Angl_Err),(int)(i));
 	//for (uint8_t i=0;i<count1;i++)
 	//{
 		//usart_putchar(&USARTE0,str1[i]);
