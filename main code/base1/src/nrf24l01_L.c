@@ -290,6 +290,17 @@ void NRF24L01_L_Flush_RX(void) {
 }
 
 /**
+ Used in TX mode. Disables AUTOACK on this
+ specific packet.
+*/
+void NRF24L01_L_NOACK_TX(void)
+ {
+	NRF24L01_L_CS_LOW;
+	SPI_L(W_TX_PAYLOAD_NOACK);
+	NRF24L01_L_CS_HIGH;
+}
+
+/**
  Initializes the device
  @param Device_Mode = _TX_MODE, _RX_MODE
  @param CH = 0..125
@@ -335,12 +346,15 @@ void NRF24L01_L_Init_milad(char Device_Mode, char CH, char DataRate,
 char *Address, char Address_Width, char Size_Payload, char Tx_Power) {
 
 	//NRF24L01_L_CE_OUT; // Set Port DIR out
+	
+		NRF24L01_L_WriteReg(ACTIVATE , 0x73);
+		NRF24L01_L_WriteReg(W_REGISTER | FEATURE, 0x07);
 
 	// Enable Enhanced ShockBurst
+	
 	NRF24L01_L_Set_ShockBurst(_ShockBurst_OFF);
-	NRF24L01_L_WriteReg(W_REGISTER | EN_AA, 0x01);
-	NRF24L01_L_WriteReg(W_REGISTER | SETUP_RETR, 0x4f);
-	//NRF24L01_L_WriteReg(W_REGISTER | FEATURE, 0x02);  //
+	NRF24L01_L_WriteReg(W_REGISTER | EN_AA, 0x00);
+	NRF24L01_L_WriteReg(W_REGISTER | SETUP_RETR, 0x13);
 	
 	// RF output power in TX mode = 0dBm (Max.)
 	// Set LNA gain
@@ -371,6 +385,7 @@ void NRF24L01_L_RF_TX(void) {
 	NRF24L01_L_CE_HIGH;
 	_delay_us(10);
 	NRF24L01_L_CE_LOW;
+	_delay_us(1);
 }
 
 /**
